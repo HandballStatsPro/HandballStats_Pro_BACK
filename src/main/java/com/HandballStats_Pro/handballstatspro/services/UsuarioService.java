@@ -1,22 +1,23 @@
 package com.HandballStats_Pro.handballstatspro.services;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.security.access.AccessDeniedException;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
-import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
-import com.HandballStats_Pro.handballstatspro.entities.Usuario;
-import com.HandballStats_Pro.handballstatspro.enums.Rol;
-import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
-
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,11 +25,11 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioClubRepository usuarioClubRepository;
 
-    // CREATE
     public Usuario crearUsuario(UsuarioDTO usuarioDTO) {
         if (usuarioRepository.existsByEmail(usuarioDTO.getEmail())) {
-            throw new RuntimeException("Email ya registrado");
+            throw new DuplicateResourceException("email_existente", "Email ya registrado");
         }
         
         Usuario usuario = new Usuario();
@@ -41,62 +42,61 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    // READ
     public List<Usuario> obtenerTodos() {
         return usuarioRepository.findAll();
     }
 
     public Usuario obtenerPorId(Long id) {
         return usuarioRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
     }
 
     public Usuario obtenerUsuarioPorEmail(String email) {
         return usuarioRepository.findByEmail(email)
-            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", email));
     }
 
-    // UPDATE (con control de rol y cambios parciales)
     public Usuario actualizarUsuario(Long id, UsuarioUpdateDTO dto) {
-        // Obtener el usuario actual por su ID
         Usuario actual = usuarioRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
 
-        // Nombre
         if (dto.getNombre() != null) {
             actual.setNombre(dto.getNombre());
         }
 
-        // Email
         if (dto.getEmail() != null && !dto.getEmail().equals(actual.getEmail())) {
             if (usuarioRepository.existsByEmail(dto.getEmail())) {
-                throw new RuntimeException("Email ya registrado");
+                throw new DuplicateResourceException("El correo electrónico ya está registrado");
             }
             actual.setEmail(dto.getEmail());
         }
 
-        // Contraseña
         if (dto.getContraseña() != null && !dto.getContraseña().isEmpty()) {
             actual.setContraseña(passwordEncoder.encode(dto.getContraseña()));
         }
 
-        // **Rol** (solo Admin puede cambiarlo)
         if (dto.getRol() != null && dto.getRol() != actual.getRol()) {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_Admin"));
+            
             if (!isAdmin) {
-                throw new AccessDeniedException("Solo Admin puede cambiar roles");
+                throw new PermissionDeniedException();
             }
             actual.setRol(dto.getRol());
         }
 
-        // Guardar y devolver
         return usuarioRepository.save(actual);
     }
 
-    // DELETE
+    @Transactional
     public void eliminarUsuario(Long id) {
-        usuarioRepository.deleteById(id);
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+
+        // Eliminar todas las relaciones usuario-club primero
+        usuarioClubRepository.deleteByUsuario(usuario);
+        
+        usuarioRepository.delete(usuario);
     }
 }

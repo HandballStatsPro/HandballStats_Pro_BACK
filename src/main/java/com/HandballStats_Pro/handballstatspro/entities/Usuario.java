@@ -1,18 +1,24 @@
 package com.HandballStats_Pro.handballstatspro.entities;
 
-import java.time.LocalDateTime;
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
+
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Usuario")
+@Table(name = "usuario")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Usuario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario")
     private Long idUsuario;
 
     @Column(nullable = false)
@@ -28,6 +34,8 @@ public class Usuario {
     @Column(nullable = false)
     private Rol rol;
 
-    @Column(nullable = false)
+    @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
+    
+    
 }

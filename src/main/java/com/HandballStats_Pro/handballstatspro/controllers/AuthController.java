@@ -5,12 +5,13 @@ import com.HandballStats_Pro.handballstatspro.dto.AuthResponse;
 import com.HandballStats_Pro.handballstatspro.dto.LoginRequest;
 import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
 import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.InvalidCredentialsException;
 import com.HandballStats_Pro.handballstatspro.services.JwtService;
 import com.HandballStats_Pro.handballstatspro.services.UserDetailsServiceImpl;
 import com.HandballStats_Pro.handballstatspro.services.UsuarioService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,13 +20,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -46,15 +41,19 @@ public class AuthController {
     }
 
     @PostMapping("/registro")
-    public ResponseEntity<AuthResponse> registro(@RequestBody UsuarioDTO usuarioDTO) {
-        Usuario usuario = usuarioService.crearUsuario(usuarioDTO);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail()); 
-        String token = jwtService.generateToken(userDetails);
-        return ResponseEntity.ok(new AuthResponse(token, usuario));
+    public ResponseEntity<AuthResponse> registro(@Valid @RequestBody UsuarioDTO usuarioDTO) {
+        try {
+            Usuario usuario = usuarioService.crearUsuario(usuarioDTO);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail());
+            String token = jwtService.generateToken(userDetails);
+            return ResponseEntity.ok(new AuthResponse(token, usuario));
+        } catch (DuplicateResourceException e) {
+            throw new DuplicateResourceException("Ya existe un usuario con este email");
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -69,7 +68,7 @@ public class AuthController {
             
             return ResponseEntity.ok(new AuthResponse(token, usuario));
         } catch (BadCredentialsException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
+            throw new InvalidCredentialsException();
         }
     }
 }

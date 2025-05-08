@@ -4,4 +4,4 @@ public enum Rol {
     Admin, 
     GestorClub, 
     Entrenador
-}
+} 
