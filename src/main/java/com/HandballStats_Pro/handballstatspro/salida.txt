@@ -1,0 +1,2159 @@
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\advice\GlobalExceptionHandler.java ---
+
+package com.HandballStats_Pro.handballstatspro.advice;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+
+import com.HandballStats_Pro.handballstatspro.dto.ErrorResponse;
+import com.HandballStats_Pro.handballstatspro.exceptions.ApiException;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.InvalidCredentialsException;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponse> handleApiException(ApiException ex, WebRequest request) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(new ErrorResponse(
+                        ex.getStatus(),
+                        ex.getErrorCode(),
+                        ex.getMessage(),
+                        request.getDescription(false).replace("uri=", "")
+                ));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+        String errorMessage = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .findFirst()
+                .orElse("Validación fallida");
+
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST,
+                        "validation_error",
+                        errorMessage,
+                        request.getDescription(false).replace("uri=", "")
+                ));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex, WebRequest request) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "internal_error",
+                        "Ocurrió un error inesperado",
+                        request.getDescription(false).replace("uri=", "")
+                ));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+        public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex, WebRequest request) {
+        return ResponseEntity.status(ex.getStatus())
+                .body(new ErrorResponse(
+                ex.getStatus(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+                ));
+        }
+
+        @ExceptionHandler(DuplicateResourceException.class)
+        public ResponseEntity<ErrorResponse> handleDuplicateResource(
+            DuplicateResourceException ex, WebRequest request) {
+            
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                    HttpStatus.CONFLICT,
+                    "email_existente",  
+                    ex.getMessage(),     
+                    request.getDescription(false).replace("uri=", "")
+                ));
+        }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\config\JwtAuthenticationFilter.java ---
+
+package com.HandballStats_Pro.handballstatspro.config;
+
+import com.HandballStats_Pro.handballstatspro.services.JwtService;
+import com.HandballStats_Pro.handballstatspro.services.UserDetailsServiceImpl;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+
+@Component
+@RequiredArgsConstructor
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private final JwtService jwtService;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    @Override
+    protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain
+    ) throws ServletException, IOException {
+        final String authHeader = request.getHeader("Authorization");
+        
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        final String jwt = authHeader.substring(7);
+        final String userEmail = jwtService.getEmailFromToken(jwt);
+
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            
+            if (jwtService.validateToken(jwt, userDetails)) {
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+                );
+
+                System.out.println("[JwtFilter] token válido para email=" 
+                + userDetails.getUsername() 
+                + ", authorities=" + userDetails.getAuthorities());
+                
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\config\JwtProperties.java ---
+
+package com.HandballStats_Pro.handballstatspro.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+@Configuration
+@ConfigurationProperties(prefix = "jwt")
+public class JwtProperties {
+    private String secret;
+    private long expiration;
+
+    // public String getSecret() {
+    //     return secret;
+    // }
+
+    // public void setSecret(String secret) {
+    //     this.secret = secret;
+    // }
+
+    // public long getExpiration() {
+    //     return expiration;
+    // }
+
+    // public void setExpiration(long expiration) {
+    //     this.expiration = expiration;
+    // }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\config\SecurityConfig.java ---
+
+package com.HandballStats_Pro.handballstatspro.config;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.HandballStats_Pro.handballstatspro.services.UserDetailsServiceImpl;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    // Inyección manual con @Lazy
+    public SecurityConfig(
+        JwtAuthenticationFilter jwtAuthFilter,
+        @Lazy UserDetailsServiceImpl userDetailsService
+    ) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.userDetailsService = userDetailsService;
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/api/auth/login", "/api/auth/registro").permitAll()
+            .anyRequest().authenticated()
+            )        
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        config.setExposedHeaders(List.of("Authorization"));
+        config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\config\UserDetailsImpl.java ---
+
+package com.HandballStats_Pro.handballstatspro.config;
+
+import lombok.Getter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.Collection;
+
+@Getter
+public class UserDetailsImpl implements UserDetails {
+    private final Long id;
+    private final String email;
+    private final String password;
+    private final Collection<? extends GrantedAuthority> authorities;
+
+    public UserDetailsImpl(Long id, String email, String password, 
+                          Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
+        this.email = email;
+        this.password = password;
+        this.authorities = authorities;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\AuthController.java ---
+
+package com.HandballStats_Pro.handballstatspro.controllers;
+
+import com.HandballStats_Pro.handballstatspro.config.UserDetailsImpl;
+import com.HandballStats_Pro.handballstatspro.dto.AuthResponse;
+import com.HandballStats_Pro.handballstatspro.dto.LoginRequest;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.InvalidCredentialsException;
+import com.HandballStats_Pro.handballstatspro.services.JwtService;
+import com.HandballStats_Pro.handballstatspro.services.UserDetailsServiceImpl;
+import com.HandballStats_Pro.handballstatspro.services.UsuarioService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final UsuarioService usuarioService;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Usuario> getCurrentUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Usuario usuario = usuarioService.obtenerUsuarioPorEmail(userDetails.getUsername());
+        return ResponseEntity.ok(usuario);
+    }
+
+    @PostMapping("/registro")
+    public ResponseEntity<AuthResponse> registro(@Valid @RequestBody UsuarioDTO usuarioDTO) {
+        try {
+            Usuario usuario = usuarioService.crearUsuario(usuarioDTO);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail());
+            String token = jwtService.generateToken(userDetails);
+            return ResponseEntity.ok(new AuthResponse(token, usuario));
+        } catch (DuplicateResourceException e) {
+            throw new DuplicateResourceException("Ya existe un usuario con este email");
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    request.getEmail(),
+                    request.getContraseña()
+                )
+            );
+            
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Usuario usuario = usuarioService.obtenerUsuarioPorEmail(userDetails.getUsername());
+            String token = jwtService.generateToken(userDetails);
+            
+            return ResponseEntity.ok(new AuthResponse(token, usuario));
+        } catch (BadCredentialsException e) {
+            throw new InvalidCredentialsException();
+        }
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\ClubController.java ---
+
+package com.HandballStats_Pro.handballstatspro.controllers;
+
+import com.HandballStats_Pro.handballstatspro.dto.ClubDTO;
+import com.HandballStats_Pro.handballstatspro.dto.ClubResponseDTO;
+import com.HandballStats_Pro.handballstatspro.dto.ClubUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioClubDTO;
+import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.services.ClubService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/club")
+@RequiredArgsConstructor
+public class ClubController {
+
+    private final ClubService clubService;
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('Admin','GestorClub')")
+    public ResponseEntity<ClubResponseDTO> crearClub(@Valid @RequestBody ClubDTO clubDTO) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(clubService.crearClub(clubDTO));
+        } catch (ResourceNotFoundException | PermissionDeniedException e) {
+            throw e; // Manejado por GlobalExceptionHandler
+        }
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('Admin','GestorClub')")
+    public ResponseEntity<List<ClubResponseDTO>> listarClubs() {
+        return ResponseEntity.ok(clubService.listarClubs());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin','GestorClub')")
+    public ResponseEntity<ClubResponseDTO> obtenerClub(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(clubService.obtenerClubPorId(id));
+        } catch (ResourceNotFoundException | PermissionDeniedException e) {
+            throw e;
+        }
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin','GestorClub')")
+    public ResponseEntity<ClubResponseDTO> actualizarClub(
+            @PathVariable Long id,
+            @Valid @RequestBody ClubUpdateDTO clubUpdateDTO) {
+        try {
+            return ResponseEntity.ok(clubService.actualizarClub(id, clubUpdateDTO));
+        } catch (ResourceNotFoundException | PermissionDeniedException e) {
+            throw e;
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('Admin')")
+    public ResponseEntity<Void> eliminarClub(@PathVariable Long id) {
+        try {
+            clubService.eliminarClub(id);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        }
+    }
+
+    @PostMapping("/asignarUsuario")
+    @PreAuthorize("hasRole('Admin')")
+    public ResponseEntity<Void> asignarUsuarioAClub(@Valid @RequestBody UsuarioClubDTO dto) {
+        try {
+            clubService.asignarUsuarioAClub(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        }
+    }
+
+    @DeleteMapping("/{idClub}/gestores/{idUsuario}")
+    @PreAuthorize("hasRole('Admin')")
+    public ResponseEntity<Void> removeGestor(
+        @PathVariable Long idClub,
+        @PathVariable Long idUsuario
+    ) {
+        clubService.removeGestor(idClub, idUsuario);
+        return ResponseEntity.noContent().build();
+    }
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\EquipoController.java ---
+
+package com.HandballStats_Pro.handballstatspro.controllers;
+
+import com.HandballStats_Pro.handballstatspro.dto.*;
+import com.HandballStats_Pro.handballstatspro.services.EquipoService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/equipo")
+@RequiredArgsConstructor
+public class EquipoController {
+
+    private final EquipoService equipoService;
+
+    @PostMapping
+    public ResponseEntity<EquipoResponseDTO> crearEquipo(@Valid @RequestBody EquipoDTO dto) {
+        return ResponseEntity.ok(equipoService.crearEquipo(dto));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<EquipoResponseDTO>> listarEquipos() {
+        return ResponseEntity.ok(equipoService.listarEquipos());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EquipoResponseDTO> obtenerEquipo(@PathVariable Long id) {
+        return ResponseEntity.ok(equipoService.obtenerEquipoPorId(id));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<EquipoResponseDTO> actualizarEquipo(@PathVariable Long id, @RequestBody EquipoUpdateDTO dto) {
+        return ResponseEntity.ok(equipoService.actualizarEquipo(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarEquipo(@PathVariable Long id) {
+        equipoService.eliminarEquipo(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/asignarUsuario")
+    public ResponseEntity<Void> asignarEntrenador(@Valid @RequestBody UsuarioEquipoDTO dto) {
+        equipoService.asignarEntrenadorAEquipo(dto);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{idEquipo}/entrenadores/{idUsuario}")
+    public ResponseEntity<Void> desasignarEntrenador(@PathVariable Long idEquipo, @PathVariable Long idUsuario) {
+        equipoService.desasignarEntrenadorDeEquipo(idEquipo, idUsuario);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{idEquipo}/club/{idClub}")
+    public ResponseEntity<Void> asignarEquipoAClub(@PathVariable Long idEquipo, @PathVariable Long idClub) {
+        equipoService.asignarEquipoAClub(idEquipo, idClub);
+        return ResponseEntity.ok().build();
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\UsuarioController.java ---
+
+package com.HandballStats_Pro.handballstatspro.controllers;
+
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioEmailDTO;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.services.UsuarioService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/usuarios")
+@RequiredArgsConstructor
+public class UsuarioController {
+
+    private final UsuarioService usuarioService;
+
+    @PostMapping
+    public ResponseEntity<Usuario> crearUsuario(@Valid @RequestBody UsuarioDTO usuarioDTO) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crearUsuario(usuarioDTO));
+        }  catch (DuplicateResourceException e) {
+            throw new DuplicateResourceException("El correo electrónico ya está registrado");
+        }
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('Admin')")
+    public ResponseEntity<List<Usuario>> obtenerTodos() {
+        return ResponseEntity.ok(usuarioService.obtenerTodos());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('Admin') or #id == authentication.principal.id")
+    public ResponseEntity<Usuario> obtenerPorId(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(usuarioService.obtenerPorId(id));
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        }
+    }
+
+    @GetMapping("/email")
+    public ResponseEntity<UsuarioEmailDTO> findByEmail(@RequestParam String email) {
+        try {
+            Usuario u = usuarioService.obtenerUsuarioPorEmail(email);
+            UsuarioEmailDTO dto = new UsuarioEmailDTO(u.getIdUsuario(), u.getNombre(), u.getEmail(), u.getRol());
+            return ResponseEntity.ok(dto);
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        }
+    }
+
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('Admin') or #id == authentication.principal.id")
+    public ResponseEntity<Usuario> actualizarUsuario(
+        @PathVariable Long id,
+        @Valid @RequestBody UsuarioUpdateDTO usuarioUpdateDTO
+    ) {
+        try {
+            return ResponseEntity.ok(usuarioService.actualizarUsuario(id, usuarioUpdateDTO));
+        } catch (DuplicateResourceException e) {
+            throw e;
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('Admin') or #id == authentication.principal.id")
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
+        try {
+            usuarioService.eliminarUsuario(id);
+            return ResponseEntity.noContent().build();
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        }
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\AuthResponse.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import lombok.Data;
+
+@Data
+public class AuthResponse {
+    private String token;
+    private Usuario usuario;
+
+    public AuthResponse(String token, Usuario usuario) {
+        this.token = token;
+        this.usuario = usuario;
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\ClubDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class ClubDTO {
+    @NotBlank(message = "El nombre del club es obligatorio")
+    @Size(max = 100, message = "El nombre no puede exceder los 100 caracteres")
+    private String nombre;
+
+    @NotBlank(message = "La ciudad es obligatoria")
+    @Size(max = 50, message = "La ciudad no puede exceder los 50 caracteres")
+    private String ciudad;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\ClubResponseDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+public class ClubResponseDTO {
+    private Long idClub;
+    private String nombre;
+    private String ciudad;
+    private LocalDateTime fechaCreacionClub;
+    private List<UsuarioSimpleDTO> gestores;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\ClubUpdateDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.time.LocalDateTime;
+
+@Data
+public class ClubUpdateDTO {
+    
+    @Size(max = 100, message = "El nombre no puede exceder los 100 caracteres")
+    private String nombre;
+
+    @Size(max = 50, message = "La ciudad no puede exceder los 50 caracteres")
+    private String ciudad;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime fechaCreacionClub;
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\EquipoDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+import jakarta.validation.constraints.*;
+
+@Data
+public class EquipoDTO {
+    @NotBlank
+    @Size(max = 100)
+    private String nombre;
+
+    @NotBlank
+    @Size(max = 50)
+    private String categoria;
+
+    @NotBlank
+    @Size(max = 50)
+    private String competicion;
+
+    private Long idClub; // opcional según rol
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\EquipoResponseDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import lombok.Data;
+
+@Data
+public class EquipoResponseDTO {
+    private Long idEquipo;
+    private Long idClub;
+    private String nombre;
+    private String categoria;
+    private String competicion;
+    private LocalDateTime fechaCreacionEquipo;
+    private List<UsuarioSimpleDTO> entrenadores;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\EquipoUpdateDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class EquipoUpdateDTO {
+    @Size(max = 100)
+    private String nombre;
+
+    @Size(max = 50)
+    private String categoria;
+
+    @Size(max = 50)
+    private String competicion;
+
+    private Long idClub; // solo Admin o GestorClub
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\ErrorResponse.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+import java.time.LocalDateTime;
+
+import org.springframework.http.HttpStatus;
+
+@Data
+public class ErrorResponse {
+    private LocalDateTime timestamp;
+    private int status;
+    private String error;
+    private String code;
+    private String message;
+    private String path;
+
+    public ErrorResponse(HttpStatus status, String code, String message, String path) {
+        this.timestamp = LocalDateTime.now();
+        this.status = status.value();
+        this.error = status.getReasonPhrase();
+        this.code = code;
+        this.message = message;
+        this.path = path;
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\LoginRequest.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class LoginRequest {
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "Formato de email inválido")
+    private String email;
+
+    @NotBlank(message = "La contraseña es obligatoria")
+    private String contraseña;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioClubDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class UsuarioClubDTO {
+    @NotNull(message = "El ID de usuario es obligatorio")
+    private Long idUsuario;
+
+    @NotNull(message = "El ID de club es obligatorio")
+    private Long idClub;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class UsuarioDTO {
+    @NotBlank(message = "El nombre es obligatorio")
+    private String nombre;
+
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "Formato de email inválido")
+    private String email;
+
+    @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    private String contraseña;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioEmailDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class UsuarioEmailDTO {
+    private Long idUsuario;
+    private String nombre;
+    private String email;
+    private Rol rol;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioEquipoDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class UsuarioEquipoDTO {
+    @NotNull
+    private Long idUsuario;
+
+    @NotNull
+    private Long idEquipo;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioSimpleDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+
+@Data
+public class UsuarioSimpleDTO {
+    private Long idUsuario;
+    private String nombre;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioUpdateDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import lombok.Data;
+
+@Data
+public class UsuarioUpdateDTO {
+    @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
+    private String nombre;
+
+    @Email(message = "Formato de email inválido")
+    private String email;
+
+    @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
+    private String contraseña;
+    
+    private Rol rol;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Club.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import lombok.*;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "club")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Club {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_club")
+    private Long idClub;
+
+    @Column(nullable = false)
+    private String nombre;
+
+    @Column(nullable = false)
+    private String ciudad;
+
+    @Column(nullable = false)
+    private LocalDateTime fechaCreacionClub;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Equipo.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "equipo")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Equipo {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_equipo")
+    private Long idEquipo;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_club", referencedColumnName = "id_club", nullable = true)
+    private Club club;
+
+    @Column(nullable = false)
+    private String nombre;
+
+    @Column(nullable = false)
+    private String categoria;
+
+    @Column(nullable = false)
+    private String competicion;
+
+    @Column(name = "fecha_creacion_equipo", nullable = false)
+    private LocalDateTime fechaCreacionEquipo;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Usuario.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "usuario")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Usuario {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario")
+    private Long idUsuario;
+
+    @Column(nullable = false)
+    private String nombre;
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String contraseña;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Rol rol;
+
+    @Column(name = "fecha_registro", nullable = false)
+    private LocalDateTime fechaRegistro;
+    
+    
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\UsuarioClub.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "usuarioclub")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UsuarioClub {
+
+    @EmbeddedId
+    private UsuarioClubId id;
+
+    @MapsId("idUsuario")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_usuario", referencedColumnName = "id_usuario")
+    private Usuario usuario;
+
+    @MapsId("idClub")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_club", referencedColumnName = "id_club")
+    private Club club;
+
+    // Constructor de conveniencia
+    public UsuarioClub(Usuario usuario, Club club) {
+        this.usuario = usuario;
+        this.club = club;
+        this.id = new UsuarioClubId(usuario.getIdUsuario(), club.getIdClub());
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\UsuarioClubId.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.Embeddable;
+import java.io.Serializable;
+import lombok.*;
+
+@Embeddable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UsuarioClubId implements Serializable {
+    private Long idUsuario;
+    private Long idClub;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\UsuarioEquipo.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "usuarioequipo")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UsuarioEquipo {
+    @EmbeddedId
+    private UsuarioEquipoId id;
+
+    @MapsId("idUsuario")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_usuario", referencedColumnName = "id_usuario")
+    private Usuario usuario;
+
+    @MapsId("idEquipo")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_equipo", referencedColumnName = "id_equipo")
+    private Equipo equipo;
+
+    public UsuarioEquipo(Usuario usuario, Equipo equipo) {
+        this.usuario = usuario;
+        this.equipo = equipo;
+        this.id = new UsuarioEquipoId(usuario.getIdUsuario(), equipo.getIdEquipo());
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\UsuarioEquipoId.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.Embeddable;
+import java.io.Serializable;
+import lombok.*;
+
+@Embeddable
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UsuarioEquipoId implements java.io.Serializable {
+    private Long idUsuario;
+    private Long idEquipo;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\enums\Rol.java ---
+
+package com.HandballStats_Pro.handballstatspro.enums;
+
+public enum Rol {
+    Admin, 
+    GestorClub, 
+    Entrenador
+} 
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\exceptions\ApiException.java ---
+
+package com.HandballStats_Pro.handballstatspro.exceptions;
+
+import org.springframework.http.HttpStatus;
+
+public class ApiException extends RuntimeException {
+    private final HttpStatus status;
+    private final String errorCode;
+
+    public ApiException(HttpStatus status, String errorCode, String message) {
+        super(message);
+        this.status = status;
+        this.errorCode = errorCode;
+    }
+
+    // Getters
+    public HttpStatus getStatus() { return status; }
+    public String getErrorCode() { return errorCode; }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\exceptions\DuplicateResourceException.java ---
+
+package com.HandballStats_Pro.handballstatspro.exceptions;
+
+import org.springframework.http.HttpStatus;
+
+public class DuplicateResourceException extends ApiException {
+    public DuplicateResourceException(String resource, String field) {
+        super(HttpStatus.CONFLICT,
+            "duplicate_resource",
+            String.format("%s con %s ya existe", resource, field));
+    }
+
+    public DuplicateResourceException(String message) {
+        super(HttpStatus.CONFLICT, "duplicate_resource", message);
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\exceptions\InvalidCredentialsException.java ---
+
+package com.HandballStats_Pro.handballstatspro.exceptions;
+
+import org.springframework.http.HttpStatus;
+
+public class InvalidCredentialsException extends ApiException {
+    public InvalidCredentialsException() {
+        super(HttpStatus.UNAUTHORIZED, 
+              "invalid_credentials", 
+              "Email o contraseña incorrectos");
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\exceptions\PermissionDeniedException.java ---
+
+package com.HandballStats_Pro.handballstatspro.exceptions;
+
+import org.springframework.http.HttpStatus;
+
+public class PermissionDeniedException extends ApiException {
+    public PermissionDeniedException() {
+        super(HttpStatus.FORBIDDEN,
+              "permission_denied",
+              "No tienes permisos para realizar esta acción");
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\exceptions\ResourceNotFoundException.java ---
+
+package com.HandballStats_Pro.handballstatspro.exceptions;
+
+import org.springframework.http.HttpStatus;
+
+public class ResourceNotFoundException extends ApiException {
+    // Constructor para ID
+    public ResourceNotFoundException(String resource, Long id) {
+        super(HttpStatus.NOT_FOUND, 
+            "resource_not_found",
+            String.format("%s con ID %d no encontrado", resource, id));
+    }
+
+    // Constructor para campo + valor
+    public ResourceNotFoundException(String resource, String field, String value) {
+        super(HttpStatus.NOT_FOUND,
+            "resource_not_found",
+            String.format("%s con %s '%s' no encontrado", resource, field, value));
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\ClubRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import com.HandballStats_Pro.handballstatspro.entities.Club;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface ClubRepository extends JpaRepository<Club, Long> {
+    Optional<Club> findByNombre(String nombre);
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\EquipoRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import com.HandballStats_Pro.handballstatspro.entities.Equipo;
+import java.util.List;
+
+@Repository
+public interface EquipoRepository extends JpaRepository<Equipo, Long> {
+    List<Equipo> findByClub_IdClubIn(List<Long> clubIds);
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\UsuarioClubRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import com.HandballStats_Pro.handballstatspro.entities.Club;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.entities.UsuarioClub;
+import com.HandballStats_Pro.handballstatspro.entities.UsuarioClubId;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface UsuarioClubRepository extends JpaRepository<UsuarioClub, UsuarioClubId> {
+    // Encuentra todas las relaciones usuario–club para un usuario dado
+    List<UsuarioClub> findByUsuario_IdUsuario(Long idUsuario);
+
+    // Comprueba existencia de la relación para control de acceso
+    boolean existsByUsuario_IdUsuarioAndClub_IdClub(Long idUsuario, Long idClub);
+
+    void deleteByClub(Club club);
+
+    List<UsuarioClub> findByClub(Club club);
+
+    void deleteByUsuario(Usuario usuario);
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\UsuarioEquipoRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.HandballStats_Pro.handballstatspro.entities.Equipo;
+import com.HandballStats_Pro.handballstatspro.entities.UsuarioEquipo;
+import com.HandballStats_Pro.handballstatspro.entities.UsuarioEquipoId;
+
+
+
+@Repository
+public interface UsuarioEquipoRepository extends JpaRepository<UsuarioEquipo, UsuarioEquipoId> {
+    List<UsuarioEquipo> findByUsuario_IdUsuario(Long idUsuario);
+    List<UsuarioEquipo> findByEquipo_IdEquipo(Long idEquipo);
+    boolean existsByUsuario_IdUsuarioAndEquipo_IdEquipo(Long idUsuario, Long idEquipo);
+    void deleteByEquipo(Equipo equipo);
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\UsuarioRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+
+@Repository
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+    Optional<Usuario> findByEmail(String email);
+    boolean existsByEmail(String email);
+} 
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\ClubService.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.config.UserDetailsImpl;
+import com.HandballStats_Pro.handballstatspro.dto.*;
+import com.HandballStats_Pro.handballstatspro.entities.*;
+import com.HandballStats_Pro.handballstatspro.exceptions.*;
+import com.HandballStats_Pro.handballstatspro.repositories.*;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ClubService {
+
+    private final ClubRepository clubRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioClubRepository usuarioClubRepository;
+
+    private Authentication auth() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    private String role() {
+        return auth().getAuthorities().stream()
+            .map(a -> a.getAuthority())
+            .findFirst()
+            .orElseThrow(PermissionDeniedException::new);
+    }
+
+    private Long userId() {
+        Object p = auth().getPrincipal();
+        if (p instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) p).getId();
+        }
+        throw new PermissionDeniedException();
+    }
+
+    public ClubResponseDTO crearClub(ClubDTO dto) {
+        clubRepository.findByNombre(dto.getNombre())
+            .ifPresent(c -> { throw new DuplicateResourceException("Club", "nombre"); });
+
+        Club club = new Club();
+        club.setNombre(dto.getNombre());
+        club.setCiudad(dto.getCiudad());
+        club.setFechaCreacionClub(LocalDateTime.now());
+        Club saved = clubRepository.save(club);
+
+        if (role().equals("ROLE_GestorClub")) {
+            Usuario u = usuarioRepository.findById(userId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", userId()));
+            usuarioClubRepository.save(new UsuarioClub(
+                new UsuarioClubId(u.getIdUsuario(), saved.getIdClub()), u, saved
+            ));
+        }
+
+        return mapToResponseDTO(saved);
+    }
+
+    public List<ClubResponseDTO> listarClubs() {
+        String r = role();
+        List<Club> clubs;
+
+        if (r.equals("ROLE_Admin")) {
+            clubs = clubRepository.findAll();
+        } else if (r.equals("ROLE_GestorClub")) {
+            clubs = usuarioClubRepository.findByUsuario_IdUsuario(userId())
+                .stream().map(UsuarioClub::getClub).toList();
+        } else {
+            throw new PermissionDeniedException();
+        }
+
+        return clubs.stream()
+                    .map(this::mapToResponseDTO)
+                    .collect(Collectors.toList());
+    }
+
+    public ClubResponseDTO obtenerClubPorId(Long id) {
+        Club club = clubRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Club", id));
+
+        String r = role();
+        if (r.equals("ROLE_GestorClub")
+         && !usuarioClubRepository.existsByUsuario_IdUsuarioAndClub_IdClub(userId(), id)) {
+            throw new PermissionDeniedException();
+        }
+
+        return mapToResponseDTO(club);
+    }
+
+    public ClubResponseDTO actualizarClub(Long id, ClubUpdateDTO dto) {
+        Club club = clubRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Club", id));
+
+        if (dto.getNombre() != null) club.setNombre(dto.getNombre());
+        if (dto.getCiudad() != null) club.setCiudad(dto.getCiudad());
+
+        return mapToResponseDTO(clubRepository.save(club));
+    }
+
+    @Transactional
+    public void eliminarClub(Long id) {
+        if (!role().equals("ROLE_Admin")) throw new PermissionDeniedException();
+        Club club = clubRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Club", id));
+        usuarioClubRepository.deleteByClub(club);
+        clubRepository.delete(club);
+    }
+
+    public void asignarUsuarioAClub(UsuarioClubDTO dto) {
+        Usuario u = usuarioRepository.findById(dto.getIdUsuario())
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", dto.getIdUsuario()));
+        Club c = clubRepository.findById(dto.getIdClub())
+            .orElseThrow(() -> new ResourceNotFoundException("Club", dto.getIdClub()));
+
+        UsuarioClubId id = new UsuarioClubId(u.getIdUsuario(), c.getIdClub());
+        if (usuarioClubRepository.existsById(id)) {
+            throw new DuplicateResourceException("UsuarioClub", "ya asignado");
+        }
+        usuarioClubRepository.save(new UsuarioClub(id, u, c));
+    }
+
+    private ClubResponseDTO mapToResponseDTO(Club club) {
+        ClubResponseDTO dto = new ClubResponseDTO();
+        dto.setIdClub(club.getIdClub());
+        dto.setNombre(club.getNombre());
+        dto.setCiudad(club.getCiudad());
+        dto.setFechaCreacionClub(club.getFechaCreacionClub());
+
+        // Rellenar gestores solo para Admin
+        if (role().equals("ROLE_Admin")) {
+            List<UsuarioSimpleDTO> gests = usuarioClubRepository
+                .findByClub(club).stream()
+                .map(uc -> uc.getUsuario())
+                .filter(u -> u.getRol().name().equals("GestorClub"))
+                .map(u -> {
+                    UsuarioSimpleDTO us = new UsuarioSimpleDTO();
+                    us.setIdUsuario(u.getIdUsuario());
+                    us.setNombre(u.getNombre());
+                    return us;
+                })
+                .collect(Collectors.toList());
+            dto.setGestores(gests);
+        } else {
+            dto.setGestores(List.of());
+        }
+
+        return dto;
+    }
+
+    public void removeGestor(Long idClub, Long idUsuario) {
+        // buscar relación y borrarla
+        UsuarioClubId key = new UsuarioClubId(idUsuario, idClub);
+        usuarioClubRepository.deleteById(key);
+      }
+      
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\EquipoService.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.config.UserDetailsImpl;
+import com.HandballStats_Pro.handballstatspro.dto.*;
+import com.HandballStats_Pro.handballstatspro.entities.*;
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.repositories.*;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class EquipoService {
+
+    private final EquipoRepository equipoRepo;
+    private final UsuarioEquipoRepository usuarioEquipoRepo;
+    private final UsuarioRepository usuarioRepo;
+    private final ClubRepository clubRepo;
+    private final UsuarioClubRepository usuarioClubRepo;
+
+    private Authentication auth() {
+        return SecurityContextHolder.getContext().getAuthentication();
+    }
+
+    private String role() {
+        return auth().getAuthorities().stream()
+                .map(a -> a.getAuthority())
+                .findFirst()
+                .orElseThrow(PermissionDeniedException::new);
+    }
+
+    private Long userId() {
+        Object p = auth().getPrincipal();
+        if (p instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) p).getId();
+        }
+        throw new PermissionDeniedException();
+    }
+
+    @Transactional
+    public EquipoResponseDTO crearEquipo(EquipoDTO dto) {
+        String r = role();
+        Equipo eq = new Equipo();
+        eq.setNombre(dto.getNombre());
+        eq.setCategoria(dto.getCategoria());
+        eq.setCompeticion(dto.getCompeticion());
+        eq.setFechaCreacionEquipo(LocalDateTime.now());
+
+        if (r.equals("ROLE_Admin")) {
+            if (dto.getIdClub() != null) {
+                Club c = clubRepo.findById(dto.getIdClub())
+                        .orElseThrow(() -> new ResourceNotFoundException("Club", dto.getIdClub()));
+                eq.setClub(c);
+            }
+        } else if (r.equals("ROLE_GestorClub")) {
+            Long clubId = dto.getIdClub();
+            if (clubId == null) {
+                throw new IllegalArgumentException("GestorClub debe indicar idClub");
+            }
+            boolean manages = usuarioClubRepo
+                    .existsByUsuario_IdUsuarioAndClub_IdClub(userId(), clubId);
+            if (!manages) {
+                throw new PermissionDeniedException();
+            }
+            eq.setClub(clubRepo.getReferenceById(clubId));
+        } else if (r.equals("ROLE_Entrenador")) {
+            // Entrenador no asigna club al crear
+        } else {
+            throw new PermissionDeniedException();
+        }
+
+        Equipo saved = equipoRepo.save(eq);
+
+        if (r.equals("ROLE_Entrenador")) {
+            Usuario u = usuarioRepo.findById(userId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario", userId()));
+            usuarioEquipoRepo.save(new UsuarioEquipo(u, saved));
+        }
+
+        return mapToDTO(saved);
+    }
+
+    public List<EquipoResponseDTO> listarEquipos() {
+        String r = role();
+        List<Equipo> list;
+
+        if (r.equals("ROLE_Admin")) {
+            list = equipoRepo.findAll();
+
+        } else if (r.equals("ROLE_GestorClub")) {
+            List<Long> clubIds = usuarioClubRepo.findByUsuario_IdUsuario(userId())
+                    .stream()
+                    .map(uc -> uc.getClub().getIdClub())
+                    .toList();
+            list = equipoRepo.findByClub_IdClubIn(clubIds);
+
+        } else if (r.equals("ROLE_Entrenador")) {
+            list = usuarioEquipoRepo.findByUsuario_IdUsuario(userId())
+                    .stream()
+                    .map(UsuarioEquipo::getEquipo)
+                    .toList();
+
+        } else {
+            throw new PermissionDeniedException();
+        }
+
+        return list.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    public EquipoResponseDTO obtenerEquipoPorId(Long id) {
+        Equipo eq = equipoRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipo", id));
+
+        String r = role();
+        if (r.equals("ROLE_Admin")) {
+            // puede ver cualquier equipo
+        } else if (r.equals("ROLE_GestorClub")) {
+            boolean ok = usuarioClubRepo
+                    .existsByUsuario_IdUsuarioAndClub_IdClub(userId(), eq.getClub().getIdClub());
+            if (!ok) throw new PermissionDeniedException();
+
+        } else if (r.equals("ROLE_Entrenador")) {
+            boolean ok = usuarioEquipoRepo
+                    .existsByUsuario_IdUsuarioAndEquipo_IdEquipo(userId(), id);
+            if (!ok) throw new PermissionDeniedException();
+
+        } else {
+            throw new PermissionDeniedException();
+        }
+
+        return mapToDTO(eq);
+    }
+
+    @Transactional
+    public EquipoResponseDTO actualizarEquipo(Long id, EquipoUpdateDTO dto) {
+        Equipo eq = equipoRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipo", id));
+
+        String r = role();
+        if (r.equals("ROLE_GestorClub")) {
+            boolean ok = usuarioClubRepo
+                    .existsByUsuario_IdUsuarioAndClub_IdClub(userId(), eq.getClub().getIdClub());
+            if (!ok) throw new PermissionDeniedException();
+
+        } else if (r.equals("ROLE_Entrenador")) {
+            boolean ok = usuarioEquipoRepo
+                    .existsByUsuario_IdUsuarioAndEquipo_IdEquipo(userId(), id);
+            if (!ok) throw new PermissionDeniedException();
+
+        } else if (!r.equals("ROLE_Admin")) {
+            throw new PermissionDeniedException();
+        }
+
+        if (dto.getNombre() != null)      eq.setNombre(dto.getNombre());
+        if (dto.getCategoria() != null)   eq.setCategoria(dto.getCategoria());
+        if (dto.getCompeticion() != null) eq.setCompeticion(dto.getCompeticion());
+
+        if (dto.getIdClub() != null) {
+            if (r.equals("ROLE_Admin")) {
+                Club c = clubRepo.findById(dto.getIdClub())
+                        .orElseThrow(() -> new ResourceNotFoundException("Club", dto.getIdClub()));
+                eq.setClub(c);
+
+            } else if (r.equals("ROLE_GestorClub")) {
+                boolean manages = usuarioClubRepo
+                        .existsByUsuario_IdUsuarioAndClub_IdClub(userId(), dto.getIdClub());
+                if (!manages) throw new PermissionDeniedException();
+                eq.setClub(clubRepo.getReferenceById(dto.getIdClub()));
+            }
+            // Entrenador no puede cambiar club
+        }
+
+        return mapToDTO(equipoRepo.save(eq));
+    }
+
+    public void eliminarEquipo(Long id) {
+        if (!role().equals("ROLE_Admin")) {
+            throw new PermissionDeniedException();
+        }
+        Equipo eq = equipoRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipo", id));
+        usuarioEquipoRepo.deleteByEquipo(eq);
+        equipoRepo.delete(eq);
+    }
+
+    @Transactional
+    public void asignarEntrenadorAEquipo(UsuarioEquipoDTO dto) {
+        String r = role();
+        Long callerId = userId();
+
+        // Permisos
+        if (!(r.equals("ROLE_Admin") || r.equals("ROLE_GestorClub"))) {
+            throw new PermissionDeniedException();
+        }
+
+        // Cargo equipo
+        Equipo e = equipoRepo.findById(dto.getIdEquipo())
+            .orElseThrow(() -> {
+                return new ResourceNotFoundException("Equipo", dto.getIdEquipo());
+            });
+
+        // Si es gestor, compruebo que gestione el club del equipo
+        if (r.equals("ROLE_GestorClub")) {
+            boolean ok = usuarioClubRepo.existsByUsuario_IdUsuarioAndClub_IdClub(
+                callerId, e.getClub().getIdClub());
+            if (!ok) {
+                throw new PermissionDeniedException();
+            }
+        }
+
+        // Cargo usuario a asignar
+        Usuario u = usuarioRepo.findById(dto.getIdUsuario())
+            .orElseThrow(() -> {
+                return new ResourceNotFoundException("Usuario", dto.getIdUsuario());
+            });
+
+        // Validar que el usuario a asignar tiene rol ENTRENADOR
+        boolean usuarioEsEntrenador = u.getRol() == Rol.Entrenador;
+        if (!usuarioEsEntrenador) {
+            throw new IllegalArgumentException("Usuario no es entrenador");
+        }
+
+
+        // Guarda asignación si no existe
+        UsuarioEquipoId id = new UsuarioEquipoId(u.getIdUsuario(), e.getIdEquipo());
+        if (usuarioEquipoRepo.existsById(id)) {
+        } else {
+            usuarioEquipoRepo.save(new UsuarioEquipo(u, e));
+        }
+    }
+
+    @Transactional
+    public void desasignarEntrenadorDeEquipo(Long idEquipo, Long idUsuario) {
+        String callerRole = role();
+        Long callerId   = userId();
+
+        // Solo Admin o GestorClub
+        if (!(callerRole.equals("ROLE_Admin") || callerRole.equals("ROLE_GestorClub"))) {
+            throw new PermissionDeniedException();
+        }
+
+        // Cargo el equipo
+        Equipo equipo = equipoRepo.findById(idEquipo)
+            .orElseThrow(() -> {
+                return new ResourceNotFoundException("Equipo", idEquipo);
+            });
+
+        // Si es GestorClub, verificar que gestiona el club del equipo
+        if (callerRole.equals("ROLE_GestorClub")) {
+            boolean gestiona = usuarioClubRepo
+                .existsByUsuario_IdUsuarioAndClub_IdClub(callerId, equipo.getClub().getIdClub());
+            if (!gestiona) {
+                throw new PermissionDeniedException();
+            }
+        }
+
+        // Cargo al usuario a desasignar
+        Usuario u = usuarioRepo.findById(idUsuario)
+            .orElseThrow(() -> {
+                return new ResourceNotFoundException("Usuario", idUsuario);
+            });
+
+        // Verificar que es entrenador
+        boolean usuarioEsEntrenador = u.getRol() == Rol.Entrenador;
+        if (!usuarioEsEntrenador) {
+            throw new IllegalArgumentException("Usuario no es entrenador");
+        }
+
+        // Verificar que la asignación existe
+        UsuarioEquipoId ueId = new UsuarioEquipoId(idUsuario, idEquipo);
+        if (!usuarioEquipoRepo.existsById(ueId)) {
+            return;
+        }
+
+        // Borro la asignación
+        usuarioEquipoRepo.deleteById(ueId);
+    }
+
+    @Transactional
+    public void asignarEquipoAClub(Long idEquipo, Long idClub) {
+        String rol = role();
+        Long uid = userId();
+
+        Equipo equipo = equipoRepo.findById(idEquipo)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipo", idEquipo));
+
+        Club club = clubRepo.findById(idClub)
+                .orElseThrow(() -> new ResourceNotFoundException("Club", idClub));
+
+        if (rol.equals("ROLE_Admin")) {
+        } else if (rol.equals("ROLE_GestorClub")) {
+            boolean gestionaDestino = usuarioClubRepo.existsByUsuario_IdUsuarioAndClub_IdClub(uid, idClub);
+            boolean gestionaActual = equipo.getClub() == null || 
+                    usuarioClubRepo.existsByUsuario_IdUsuarioAndClub_IdClub(uid, equipo.getClub().getIdClub());
+
+    
+            if (!gestionaDestino || !gestionaActual) {
+                throw new PermissionDeniedException();
+            }
+        } else {
+            throw new PermissionDeniedException();
+        }
+
+        equipo.setClub(club);
+        equipoRepo.save(equipo);
+    }
+
+
+    private EquipoResponseDTO mapToDTO(Equipo eq) {
+        EquipoResponseDTO dto = new EquipoResponseDTO();
+        dto.setIdEquipo(eq.getIdEquipo());
+        dto.setIdClub(eq.getClub() != null
+                ? eq.getClub().getIdClub()
+                : null);
+        dto.setNombre(eq.getNombre());
+        dto.setCategoria(eq.getCategoria());
+        dto.setCompeticion(eq.getCompeticion());
+        dto.setFechaCreacionEquipo(eq.getFechaCreacionEquipo());
+
+        if (role().equals("ROLE_Admin")) {
+            List<UsuarioSimpleDTO> entrenadores = usuarioEquipoRepo
+                    .findByEquipo_IdEquipo(eq.getIdEquipo())
+                    .stream()
+                    .map(ue -> {
+                        UsuarioSimpleDTO u = new UsuarioSimpleDTO();
+                        u.setIdUsuario(ue.getUsuario().getIdUsuario());
+                        u.setNombre(ue.getUsuario().getNombre());
+                        return u;
+                    })
+                    .collect(Collectors.toList());
+            dto.setEntrenadores(entrenadores);
+        }
+
+        return dto;
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\JwtService.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.config.JwtProperties;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import java.security.Key;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
+@Service
+@RequiredArgsConstructor
+public class JwtService {
+
+    private final JwtProperties jwtProperties;
+
+    // Método para generar token SIN claims adicionales
+    public String generateToken(UserDetails userDetails) {
+        return generateToken(new HashMap<>(), userDetails);
+    }
+
+    // Método para generar token CON claims adicionales
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        return Jwts.builder()
+                .setClaims(extraClaims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String getEmailFromToken(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails) {
+        final String email = getEmailFromToken(token);
+        return (email.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSignInKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
+    private Key getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(jwtProperties.getSecret());
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\UserDetailsServiceImpl.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.config.UserDetailsImpl;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import java.util.Collections;
+
+@Service
+@RequiredArgsConstructor
+public class UserDetailsServiceImpl implements UserDetailsService {
+
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", email));
+
+        return new UserDetailsImpl(
+            usuario.getIdUsuario(),
+            usuario.getEmail(),
+            usuario.getContraseña(),
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name()))
+        );
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\UsuarioService.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
+import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
+import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UsuarioClubRepository usuarioClubRepository;
+
+    public Usuario crearUsuario(UsuarioDTO usuarioDTO) {
+        if (usuarioRepository.existsByEmail(usuarioDTO.getEmail())) {
+            throw new DuplicateResourceException("email_existente", "Email ya registrado");
+        }
+        
+        Usuario usuario = new Usuario();
+        usuario.setNombre(usuarioDTO.getNombre());
+        usuario.setEmail(usuarioDTO.getEmail());
+        usuario.setContraseña(passwordEncoder.encode(usuarioDTO.getContraseña()));
+        usuario.setRol(Rol.Entrenador);
+        usuario.setFechaRegistro(LocalDateTime.now());
+        
+        return usuarioRepository.save(usuario);
+    }
+
+    public List<Usuario> obtenerTodos() {
+        return usuarioRepository.findAll();
+    }
+
+    public Usuario obtenerPorId(Long id) {
+        return usuarioRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+    }
+
+    public Usuario obtenerUsuarioPorEmail(String email) {
+        return usuarioRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", email));
+    }
+
+    public Usuario actualizarUsuario(Long id, UsuarioUpdateDTO dto) {
+        Usuario actual = usuarioRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+
+        if (dto.getNombre() != null) {
+            actual.setNombre(dto.getNombre());
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().equals(actual.getEmail())) {
+            if (usuarioRepository.existsByEmail(dto.getEmail())) {
+                throw new DuplicateResourceException("El correo electrónico ya está registrado");
+            }
+            actual.setEmail(dto.getEmail());
+        }
+
+        if (dto.getContraseña() != null && !dto.getContraseña().isEmpty()) {
+            actual.setContraseña(passwordEncoder.encode(dto.getContraseña()));
+        }
+
+        if (dto.getRol() != null && dto.getRol() != actual.getRol()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_Admin"));
+            
+            if (!isAdmin) {
+                throw new PermissionDeniedException();
+            }
+            actual.setRol(dto.getRol());
+        }
+
+        return usuarioRepository.save(actual);
+    }
+
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+
+        // Eliminar todas las relaciones usuario-club primero
+        usuarioClubRepository.deleteByUsuario(usuario);
+        
+        usuarioRepository.delete(usuario);
+    }
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\HandballstatsproApplication.java ---
+
+package com.HandballStats_Pro.handballstatspro;
+
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class HandballstatsproApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(HandballstatsproApplication.class, args);
+	}
+
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\ServletInitializer.java ---
+
+package com.HandballStats_Pro.handballstatspro;
+
+
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+
+public class ServletInitializer extends SpringBootServletInitializer {
+
+	@Override
+	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+		return application.sources(HandballstatsproApplication.class);
+	}
+
+}
