@@ -1,5 +1,7 @@
 package com.HandballStats_Pro.handballstatspro.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -13,4 +15,5 @@ public class ClubDTO {
     @NotBlank(message = "La ciudad es obligatoria")
     @Size(max = 50, message = "La ciudad no puede exceder los 50 caracteres")
     private String ciudad;
+
 }

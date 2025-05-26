@@ -34,6 +34,10 @@ public class Usuario {
     @Column(nullable = false)
     private Rol rol;
 
+    @Lob
+    @Column(name = "avatar", columnDefinition = "LONGBLOB")
+    private byte[] avatarBase64;
+
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
     

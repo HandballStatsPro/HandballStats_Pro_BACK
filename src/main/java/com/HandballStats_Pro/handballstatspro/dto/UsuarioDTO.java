@@ -1,5 +1,7 @@
 package com.HandballStats_Pro.handballstatspro.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -17,4 +19,6 @@ public class UsuarioDTO {
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String contraseña;
+    
+    private String avatarBase64;
 }

@@ -49,8 +49,12 @@ public class AuthController {
             return ResponseEntity.ok(new AuthResponse(token, usuario));
         } catch (DuplicateResourceException e) {
             throw new DuplicateResourceException("Ya existe un usuario con este email");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {

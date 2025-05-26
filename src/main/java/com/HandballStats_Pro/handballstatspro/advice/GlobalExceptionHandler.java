@@ -78,4 +78,15 @@ public class GlobalExceptionHandler {
                     request.getDescription(false).replace("uri=", "")
                 ));
         }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "invalid_argument",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+                ));
+        }
 }

@@ -81,6 +81,17 @@ public class GlobalExceptionHandler {
                     request.getDescription(false).replace("uri=", "")
                 ));
         }
+
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "invalid_argument",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+                ));
+        }
 }
 
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\config\JwtAuthenticationFilter.java ---
@@ -397,8 +408,12 @@ public class AuthController {
             return ResponseEntity.ok(new AuthResponse(token, usuario));
         } catch (DuplicateResourceException e) {
             throw new DuplicateResourceException("Ya existe un usuario con este email");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -585,6 +600,82 @@ public class EquipoController {
     }
 }
 
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\PartidoController.java ---
+
+package com.HandballStats_Pro.handballstatspro.controllers;
+
+import com.HandballStats_Pro.handballstatspro.dto.PartidoDTO;
+import com.HandballStats_Pro.handballstatspro.dto.PartidoResponseDTO;
+import com.HandballStats_Pro.handballstatspro.dto.PartidoUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.dto.EquipoResponseDTO;
+import com.HandballStats_Pro.handballstatspro.services.PartidoService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("/partidos")
+@RequiredArgsConstructor
+public class PartidoController {
+
+    private final PartidoService partidoService;
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<PartidoResponseDTO> crearPartido(@Valid @RequestBody PartidoDTO partidoDTO) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(partidoService.crearPartido(partidoDTO));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<List<PartidoResponseDTO>> listarPartidos() {
+        return ResponseEntity.ok(partidoService.listarPartidos());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<PartidoResponseDTO> obtenerPartido(@PathVariable Integer id) {
+        return ResponseEntity.ok(partidoService.obtenerPartidoPorId(id));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<PartidoResponseDTO> actualizarPartido(@PathVariable Integer id, @Valid @RequestBody PartidoUpdateDTO partidoUpdateDTO) {
+        return ResponseEntity.ok(partidoService.actualizarPartido(id, partidoUpdateDTO));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<Void> eliminarPartido(@PathVariable Integer id) {
+        partidoService.eliminarPartido(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/equipo/{idEquipo}")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<List<PartidoResponseDTO>> obtenerPartidosPorEquipo(@PathVariable Long idEquipo) {
+        return ResponseEntity.ok(partidoService.obtenerPartidosPorEquipo(idEquipo));
+    }
+
+    @GetMapping("/fecha/{fecha}")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<List<PartidoResponseDTO>> obtenerPartidosPorFecha(@PathVariable LocalDate fecha) {
+        return ResponseEntity.ok(partidoService.obtenerPartidosPorFecha(fecha));
+    }
+
+    @GetMapping("/equipos-disponibles")
+    @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
+    public ResponseEntity<List<EquipoResponseDTO>> obtenerEquiposDisponibles() {
+        return ResponseEntity.ok(partidoService.obtenerEquiposDisponibles());
+    }
+}
+
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\controllers\UsuarioController.java ---
 
 package com.HandballStats_Pro.handballstatspro.controllers;
@@ -696,6 +787,8 @@ public class AuthResponse {
 
 package com.HandballStats_Pro.handballstatspro.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -709,6 +802,7 @@ public class ClubDTO {
     @NotBlank(message = "La ciudad es obligatoria")
     @Size(max = 50, message = "La ciudad no puede exceder los 50 caracteres")
     private String ciudad;
+
 }
 
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\ClubResponseDTO.java ---
@@ -738,6 +832,8 @@ import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
+
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class ClubUpdateDTO {
@@ -790,6 +886,7 @@ import lombok.Data;
 public class EquipoResponseDTO {
     private Long idEquipo;
     private Long idClub;
+    private String clubNombre;
     private String nombre;
     private String categoria;
     private String competicion;
@@ -864,6 +961,80 @@ public class LoginRequest {
     private String contraseña;
 }
 
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\PartidoDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import jakarta.validation.constraints.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import lombok.Data;
+
+@Data
+public class PartidoDTO {
+    private Integer idPartido;
+
+    private String resultado;
+
+    @NotNull(message = "El id del equipo propio es obligatorio")
+    private Long idEquipoPropio;
+
+    @NotBlank(message = "El nombre del rival es obligatorio")
+    @Size(max = 100, message = "El nombre del rival no puede exceder los 100 caracteres")
+    private String nombreRival;
+
+    @NotNull(message = "El indicador de localía es obligatorio")
+    private Boolean esLocal;
+
+    @NotNull(message = "La fecha del partido es obligatoria")
+    private LocalDate fecha;
+
+    private LocalDateTime fechaRegistro;
+
+    private Long idUsuarioRegistro;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\PartidoResponseDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Data
+public class PartidoResponseDTO {
+    private Integer idPartido;
+    private String resultado;
+    private Long idEquipoPropio;
+    private String nombreRival;
+    private Boolean esLocal;
+    private LocalDate fecha;
+    private LocalDateTime fechaRegistro;
+    private Long idUsuarioRegistro;
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\PartidoUpdateDTO.java ---
+
+package com.HandballStats_Pro.handballstatspro.dto;
+
+import lombok.Data;
+import java.time.LocalDate;
+
+import jakarta.validation.constraints.Size;
+
+@Data
+public class PartidoUpdateDTO {
+    @Size(max = 10, message = "El resultado no puede exceder los 10 caracteres")
+    private String resultado;
+    private Long idEquipoPropio;
+    @Size(max = 100, message = "El nombre del rival no puede exceder los 100 caracteres")
+    private String nombreRival;
+    private Boolean esLocal;
+    private LocalDate fecha;
+}
+
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioClubDTO.java ---
 
 package com.HandballStats_Pro.handballstatspro.dto;
@@ -884,6 +1055,8 @@ public class UsuarioClubDTO {
 
 package com.HandballStats_Pro.handballstatspro.dto;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -901,6 +1074,8 @@ public class UsuarioDTO {
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String contraseña;
+    
+    private String avatarBase64;
 }
 
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\dto\UsuarioEmailDTO.java ---
@@ -954,6 +1129,7 @@ package com.HandballStats_Pro.handballstatspro.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
+
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
 import lombok.Data;
 
@@ -969,6 +1145,8 @@ public class UsuarioUpdateDTO {
     private String contraseña;
     
     private Rol rol;
+    
+    private String avatarBase64;
 }
 
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Club.java ---
@@ -1036,6 +1214,50 @@ public class Equipo {
     private LocalDateTime fechaCreacionEquipo;
 }
 
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Partido.java ---
+
+package com.HandballStats_Pro.handballstatspro.entities;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "partido")
+@Data
+public class Partido {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_partido")
+    private Integer idPartido;
+
+    @Column(name = "resultado")
+    private String resultado;
+
+    @Column(name = "id_equipo_propio")
+    private Long idEquipoPropio;
+
+    @Column(name = "nombre_rival")
+    private String nombreRival;
+
+    @Column(name = "es_local")
+    private Boolean esLocal;
+
+    @Column(name = "fecha")
+    private LocalDate fecha;
+
+    @Column(name = "fecha_registro")
+    private LocalDateTime fechaRegistro;
+
+    @Column(name = "id_usuario_registro")
+    private Long idUsuarioRegistro;
+
+    @ManyToOne
+    @JoinColumn(name = "id_equipo_propio", referencedColumnName = "id_equipo", insertable = false, updatable = false)
+    private Equipo equipoPropio;
+}
+
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\entities\Usuario.java ---
 
 package com.HandballStats_Pro.handballstatspro.entities;
@@ -1073,6 +1295,10 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Rol rol;
+
+    @Lob
+    @Column(name = "avatar", columnDefinition = "LONGBLOB")
+    private byte[] avatarBase64;
 
     @Column(name = "fecha_registro", nullable = false)
     private LocalDateTime fechaRegistro;
@@ -1316,6 +1542,56 @@ import java.util.List;
 @Repository
 public interface EquipoRepository extends JpaRepository<Equipo, Long> {
     List<Equipo> findByClub_IdClubIn(List<Long> clubIds);
+}
+
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\PartidoRepository.java ---
+
+package com.HandballStats_Pro.handballstatspro.repositories;
+
+import com.HandballStats_Pro.handballstatspro.entities.Partido;
+import com.HandballStats_Pro.handballstatspro.entities.Equipo;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.time.LocalDate;
+
+@Repository
+public interface PartidoRepository extends JpaRepository<Partido, Integer> {
+    List<Partido> findByIdEquipoPropio(Long idEquipoPropio);
+    List<Partido> findByFecha(LocalDate fecha);
+
+    // Consulta para obtener partidos de equipos vinculados a un gestor (por club)
+    @Query("SELECT p FROM Partido p WHERE p.idEquipoPropio IN " +
+           "(SELECT e.idEquipo FROM Equipo e WHERE e.club.idClub IN " +
+           "(SELECT uc.club.idClub FROM UsuarioClub uc WHERE uc.usuario.idUsuario = :idUsuario))")
+    List<Partido> findPartidosByGestorClub(@Param("idUsuario") Long idUsuario);
+
+    // Consulta para obtener partidos de equipos vinculados a un entrenador
+    @Query("SELECT p FROM Partido p WHERE p.idEquipoPropio IN " +
+           "(SELECT ue.equipo.idEquipo FROM UsuarioEquipo ue WHERE ue.usuario.idUsuario = :idUsuario)")
+    List<Partido> findPartidosByEntrenador(@Param("idUsuario") Long idUsuario);
+
+    // Verificar si un equipo pertenece a clubes vinculados a un gestor
+    @Query("SELECT COUNT(e) > 0 FROM Equipo e WHERE e.idEquipo = :idEquipo " +
+           "AND e.club.idClub IN (SELECT uc.club.idClub FROM UsuarioClub uc WHERE uc.usuario.idUsuario = :idUsuario)")
+    boolean existsEquipoInGestorClubes(@Param("idEquipo") Long idEquipo, @Param("idUsuario") Long idUsuario);
+
+    // Verificar si un equipo está vinculado a un entrenador
+    @Query("SELECT COUNT(ue) > 0 FROM UsuarioEquipo ue WHERE ue.equipo.idEquipo = :idEquipo AND ue.usuario.idUsuario = :idUsuario")
+    boolean existsEquipoInEntrenador(@Param("idEquipo") Long idEquipo, @Param("idUsuario") Long idUsuario);
+
+    // Obtener equipos disponibles para gestor de club
+    @Query("SELECT e FROM Equipo e WHERE e.club.idClub IN " +
+           "(SELECT uc.club.idClub FROM UsuarioClub uc WHERE uc.usuario.idUsuario = :idUsuario)")
+    List<Equipo> findEquiposByGestorClub(@Param("idUsuario") Long idUsuario);
+
+    // Obtener equipos disponibles para entrenador
+    @Query("SELECT e FROM Equipo e WHERE e.idEquipo IN " +
+           "(SELECT ue.equipo.idEquipo FROM UsuarioEquipo ue WHERE ue.usuario.idUsuario = :idUsuario)")
+    List<Equipo> findEquiposByEntrenador(@Param("idUsuario") Long idUsuario);
 }
 
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\repositories\UsuarioClubRepository.java ---
@@ -1880,12 +2156,15 @@ public class EquipoService {
         dto.setIdClub(eq.getClub() != null
                 ? eq.getClub().getIdClub()
                 : null);
+        dto.setClubNombre(eq.getClub() != null
+                ? eq.getClub().getNombre()
+                : null);
         dto.setNombre(eq.getNombre());
         dto.setCategoria(eq.getCategoria());
         dto.setCompeticion(eq.getCompeticion());
         dto.setFechaCreacionEquipo(eq.getFechaCreacionEquipo());
 
-        if (role().equals("ROLE_Admin")) {
+        if (role().equals("ROLE_Admin") || role().equals("ROLE_GestorClub")) {
             List<UsuarioSimpleDTO> entrenadores = usuarioEquipoRepo
                     .findByEquipo_IdEquipo(eq.getIdEquipo())
                     .stream()
@@ -1982,6 +2261,307 @@ public class JwtService {
 
 }
 
+--- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\PartidoService.java ---
+
+package com.HandballStats_Pro.handballstatspro.services;
+
+import com.HandballStats_Pro.handballstatspro.dto.PartidoDTO;
+import com.HandballStats_Pro.handballstatspro.dto.PartidoResponseDTO;
+import com.HandballStats_Pro.handballstatspro.dto.PartidoUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.entities.Partido;
+import com.HandballStats_Pro.handballstatspro.entities.Usuario;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.repositories.PartidoRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import com.HandballStats_Pro.handballstatspro.entities.Equipo;
+import com.HandballStats_Pro.handballstatspro.repositories.EquipoRepository;
+import com.HandballStats_Pro.handballstatspro.services.EquipoService;
+import com.HandballStats_Pro.handballstatspro.dto.EquipoResponseDTO;
+
+import org.springframework.stereotype.Service;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.GrantedAuthority;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.time.LocalDate;
+
+@Service
+public class PartidoService {
+
+    private final PartidoRepository partidoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final EquipoService equipoService;
+    private final EquipoRepository equipoRepository;
+
+    public PartidoService(PartidoRepository partidoRepository, UsuarioRepository usuarioRepository, EquipoService equipoService, EquipoRepository equipoRepository) {
+        this.partidoRepository = partidoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.equipoService = equipoService;
+        this.equipoRepository = equipoRepository;
+    }
+
+    public PartidoResponseDTO crearPartido(PartidoDTO partidoDTO) {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Validar permisos según el rol
+        if (!puedeCrearPartido(partidoDTO.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+
+        Partido partido = new Partido();
+        partido.setResultado(partidoDTO.getResultado());
+        partido.setIdEquipoPropio(partidoDTO.getIdEquipoPropio());
+        partido.setNombreRival(partidoDTO.getNombreRival());
+        partido.setEsLocal(partidoDTO.getEsLocal());
+        partido.setFecha(partidoDTO.getFecha());
+        partido.setFechaRegistro(LocalDateTime.now());
+        partido.setIdUsuarioRegistro(usuario.getIdUsuario());
+
+        Partido nuevoPartido = partidoRepository.save(partido);
+        return mapToResponseDTO(nuevoPartido);
+    }
+
+    public List<PartidoResponseDTO> listarPartidos() {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        List<Partido> partidos;
+        
+        if ("ROLE_Admin".equals(rol)) {
+            // Admin puede ver todos los partidos
+            partidos = partidoRepository.findAll();
+        } else if ("ROLE_GestorClub".equals(rol)) {
+            // Gestor puede ver partidos de equipos de sus clubes
+            partidos = partidoRepository.findPartidosByGestorClub(usuario.getIdUsuario());
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            // Entrenador puede ver partidos de sus equipos
+            partidos = partidoRepository.findPartidosByEntrenador(usuario.getIdUsuario());
+        } else {
+            partidos = List.of(); // Otros roles no tienen acceso
+        }
+        
+        return partidos.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public PartidoResponseDTO obtenerPartidoPorId(Integer id) {
+        Partido partido = partidoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
+        
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Validar permisos según el rol
+        if (!puedeAccederPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+        
+        return mapToResponseDTO(partido);
+    }
+
+    public PartidoResponseDTO actualizarPartido(Integer id, PartidoUpdateDTO partidoUpdateDTO) {
+        Partido partido = partidoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
+        
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Validar permisos según el rol
+        if (!puedeEditarPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+        
+        // Si se cambia el equipo propio, validar que tenga permisos sobre el nuevo equipo
+        if (partidoUpdateDTO.getIdEquipoPropio() != null && 
+            !partidoUpdateDTO.getIdEquipoPropio().equals(partido.getIdEquipoPropio())) {
+            if (!puedeCrearPartido(partidoUpdateDTO.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+                throw new PermissionDeniedException();
+            }
+        }
+
+        if (partidoUpdateDTO.getResultado() != null) {
+            partido.setResultado(partidoUpdateDTO.getResultado());
+        }
+        if (partidoUpdateDTO.getIdEquipoPropio() != null) {
+            partido.setIdEquipoPropio(partidoUpdateDTO.getIdEquipoPropio());
+        }
+        if (partidoUpdateDTO.getNombreRival() != null) {
+            partido.setNombreRival(partidoUpdateDTO.getNombreRival());
+        }
+        if (partidoUpdateDTO.getEsLocal() != null) {
+            partido.setEsLocal(partidoUpdateDTO.getEsLocal());
+        }
+        if (partidoUpdateDTO.getFecha() != null) {
+            partido.setFecha(partidoUpdateDTO.getFecha());
+        }
+
+        Partido partidoActualizado = partidoRepository.save(partido);
+        return mapToResponseDTO(partidoActualizado);
+    }
+
+    public void eliminarPartido(Integer id) {
+        Partido partido = partidoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
+        
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Validar permisos según el rol
+        if (!puedeEliminarPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+        
+        partidoRepository.delete(partido);
+    }
+
+    public List<PartidoResponseDTO> obtenerPartidosPorEquipo(Long idEquipo) {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Validar que el usuario tenga acceso al equipo
+        if (!puedeAccederPartido(idEquipo, usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+        
+        List<Partido> partidos = partidoRepository.findByIdEquipoPropio(idEquipo);
+        return partidos.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<PartidoResponseDTO> obtenerPartidosPorFecha(LocalDate fecha) {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        List<Partido> partidos = partidoRepository.findByFecha(fecha);
+        
+        // Filtrar según permisos del usuario
+        if ("ROLE_Admin".equals(rol)) {
+            // Admin puede ver todos
+        } else if ("ROLE_GestorClub".equals(rol)) {
+            // Filtrar solo equipos de sus clubes
+            partidos = partidos.stream()
+                    .filter(p -> partidoRepository.existsEquipoInGestorClubes(p.getIdEquipoPropio(), usuario.getIdUsuario()))
+                    .collect(Collectors.toList());
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            // Filtrar solo sus equipos
+            partidos = partidos.stream()
+                    .filter(p -> partidoRepository.existsEquipoInEntrenador(p.getIdEquipoPropio(), usuario.getIdUsuario()))
+                    .collect(Collectors.toList());
+        } else {
+            partidos = List.of();
+        }
+        
+        return partidos.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<EquipoResponseDTO> obtenerEquiposDisponibles() {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        List<Equipo> equipos;
+        
+        if ("ROLE_Admin".equals(rol)) {
+            // Admin puede ver todos los equipos
+            equipos = equipoRepository.findAll();
+        } else if ("ROLE_GestorClub".equals(rol)) {
+            // Gestor puede ver equipos de sus clubes
+            equipos = partidoRepository.findEquiposByGestorClub(usuario.getIdUsuario());
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            // Entrenador puede ver sus equipos
+            equipos = partidoRepository.findEquiposByEntrenador(usuario.getIdUsuario());
+        } else {
+            equipos = List.of();
+        }
+        
+        return equipos.stream()
+                .map(this::mapEquipoToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Métodos privados para validación de permisos
+    private boolean puedeCrearPartido(Long idEquipo, Long idUsuario, String rol) {
+        if ("ROLE_Admin".equals(rol)) {
+            return true;
+        } else if ("ROLE_GestorClub".equals(rol)) {
+            return partidoRepository.existsEquipoInGestorClubes(idEquipo, idUsuario);
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            return partidoRepository.existsEquipoInEntrenador(idEquipo, idUsuario);
+        }
+        return false;
+    }
+
+    private boolean puedeAccederPartido(Long idEquipo, Long idUsuario, String rol) {
+        return puedeCrearPartido(idEquipo, idUsuario, rol);
+    }
+
+    private boolean puedeEditarPartido(Long idEquipo, Long idUsuario, String rol) {
+        return puedeCrearPartido(idEquipo, idUsuario, rol);
+    }
+
+    private boolean puedeEliminarPartido(Long idEquipo, Long idUsuario, String rol) {
+        if ("ROLE_Admin".equals(rol)) {
+            return true;
+        } else if ("ROLE_GestorClub".equals(rol)) {
+            return partidoRepository.existsEquipoInGestorClubes(idEquipo, idUsuario);
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            return partidoRepository.existsEquipoInEntrenador(idEquipo, idUsuario);
+        }
+        return false;
+    }
+
+    private Usuario obtenerUsuarioActual() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = userDetails.getUsername();
+        return usuarioRepository.findByEmail(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", "email", username));
+    }
+
+    private String obtenerRolUsuario() {
+        return SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .findFirst()
+                .orElse("");
+    }
+
+    private PartidoResponseDTO mapToResponseDTO(Partido partido) {
+        PartidoResponseDTO dto = new PartidoResponseDTO();
+        dto.setIdPartido(partido.getIdPartido());
+        dto.setResultado(partido.getResultado());
+        dto.setIdEquipoPropio(partido.getIdEquipoPropio());
+        dto.setNombreRival(partido.getNombreRival());
+        dto.setEsLocal(partido.getEsLocal());
+        dto.setFecha(partido.getFecha());
+        dto.setFechaRegistro(partido.getFechaRegistro());
+        dto.setIdUsuarioRegistro(partido.getIdUsuarioRegistro());
+        return dto;
+    }
+    
+    private EquipoResponseDTO mapEquipoToResponseDTO(Equipo equipo) {
+        EquipoResponseDTO dto = new EquipoResponseDTO();
+        dto.setIdEquipo(equipo.getIdEquipo());
+        dto.setNombre(equipo.getNombre());
+        dto.setCategoria(equipo.getCategoria());
+        dto.setCompeticion(equipo.getCompeticion());
+        dto.setFechaCreacionEquipo(equipo.getFechaCreacionEquipo());
+        
+        if (equipo.getClub() != null) {
+            dto.setIdClub(equipo.getClub().getIdClub());
+            dto.setClubNombre(equipo.getClub().getNombre());
+        }
+        
+        return dto;
+    }
+}
+
 --- C:\Users\ortiz\OneDrive\Escritorio\PI\back\handballstatspro\src\main\java\com\HandballStats_Pro\handballstatspro\services\UserDetailsServiceImpl.java ---
 
 package com.HandballStats_Pro.handballstatspro.services;
@@ -2027,6 +2607,7 @@ import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
 import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
 import com.HandballStats_Pro.handballstatspro.entities.Usuario;
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import com.HandballStats_Pro.handballstatspro.exceptions.ApiException;
 import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
 import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
 import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
@@ -2034,12 +2615,16 @@ import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository
 import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -2049,6 +2634,9 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioClubRepository usuarioClubRepository;
+
+    @Value("${avatar.max-size}")
+    private long maxAvatarSize;
 
     public Usuario crearUsuario(UsuarioDTO usuarioDTO) {
         if (usuarioRepository.existsByEmail(usuarioDTO.getEmail())) {
@@ -2061,9 +2649,22 @@ public class UsuarioService {
         usuario.setContraseña(passwordEncoder.encode(usuarioDTO.getContraseña()));
         usuario.setRol(Rol.Entrenador);
         usuario.setFechaRegistro(LocalDateTime.now());
+
+        if (usuarioDTO.getAvatarBase64() != null && !usuarioDTO.getAvatarBase64().isEmpty()) {
+            byte[] img = Base64.getDecoder().decode(usuarioDTO.getAvatarBase64());
+            if (img.length > maxAvatarSize) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST, 
+                    "avatar_too_large",
+                    "Avatar excede tamaño máximo de " + (maxAvatarSize/1024) + " KB"
+                );
+            }
+            usuario.setAvatarBase64(img);
+        }
         
         return usuarioRepository.save(usuario);
     }
+
 
     public List<Usuario> obtenerTodos() {
         return usuarioRepository.findAll();
@@ -2107,6 +2708,15 @@ public class UsuarioService {
                 throw new PermissionDeniedException();
             }
             actual.setRol(dto.getRol());
+        }
+
+        if (dto.getAvatarBase64() != null) {
+            byte[] img = Base64.getDecoder().decode(dto.getAvatarBase64());
+            if (img.length > maxAvatarSize) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "avatar_too_large",
+                    "Avatar excede tamaño máximo de " + (maxAvatarSize/1024) + " KB");
+            }
+            actual.setAvatarBase64(img);
         }
 
         return usuarioRepository.save(actual);

@@ -4,6 +4,7 @@ import com.HandballStats_Pro.handballstatspro.dto.UsuarioDTO;
 import com.HandballStats_Pro.handballstatspro.dto.UsuarioUpdateDTO;
 import com.HandballStats_Pro.handballstatspro.entities.Usuario;
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
+import com.HandballStats_Pro.handballstatspro.exceptions.ApiException;
 import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceException;
 import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
 import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
@@ -11,12 +12,16 @@ import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository
 import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -26,6 +31,9 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioClubRepository usuarioClubRepository;
+
+    @Value("${avatar.max-size}")
+    private long maxAvatarSize;
 
     public Usuario crearUsuario(UsuarioDTO usuarioDTO) {
         if (usuarioRepository.existsByEmail(usuarioDTO.getEmail())) {
@@ -38,9 +46,22 @@ public class UsuarioService {
         usuario.setContraseña(passwordEncoder.encode(usuarioDTO.getContraseña()));
         usuario.setRol(Rol.Entrenador);
         usuario.setFechaRegistro(LocalDateTime.now());
+
+        if (usuarioDTO.getAvatarBase64() != null && !usuarioDTO.getAvatarBase64().isEmpty()) {
+            byte[] img = Base64.getDecoder().decode(usuarioDTO.getAvatarBase64());
+            if (img.length > maxAvatarSize) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST, 
+                    "avatar_too_large",
+                    "Avatar excede tamaño máximo de " + (maxAvatarSize/1024) + " KB"
+                );
+            }
+            usuario.setAvatarBase64(img);
+        }
         
         return usuarioRepository.save(usuario);
     }
+
 
     public List<Usuario> obtenerTodos() {
         return usuarioRepository.findAll();
@@ -84,6 +105,15 @@ public class UsuarioService {
                 throw new PermissionDeniedException();
             }
             actual.setRol(dto.getRol());
+        }
+
+        if (dto.getAvatarBase64() != null) {
+            byte[] img = Base64.getDecoder().decode(dto.getAvatarBase64());
+            if (img.length > maxAvatarSize) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "avatar_too_large",
+                    "Avatar excede tamaño máximo de " + (maxAvatarSize/1024) + " KB");
+            }
+            actual.setAvatarBase64(img);
         }
 
         return usuarioRepository.save(actual);

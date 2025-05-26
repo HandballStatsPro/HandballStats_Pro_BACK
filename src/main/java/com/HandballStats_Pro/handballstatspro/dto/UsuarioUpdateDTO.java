@@ -2,6 +2,7 @@ package com.HandballStats_Pro.handballstatspro.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
+
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
 import lombok.Data;
 
@@ -17,4 +18,6 @@ public class UsuarioUpdateDTO {
     private String contraseña;
     
     private Rol rol;
+    
+    private String avatarBase64;
 }

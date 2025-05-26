@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
 
+import org.springframework.web.multipart.MultipartFile;
+
 @Data
 public class ClubUpdateDTO {
     
