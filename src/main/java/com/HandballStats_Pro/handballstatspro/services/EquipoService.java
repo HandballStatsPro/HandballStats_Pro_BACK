@@ -6,7 +6,12 @@ import com.HandballStats_Pro.handballstatspro.entities.*;
 import com.HandballStats_Pro.handballstatspro.enums.Rol;
 import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
 import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
-import com.HandballStats_Pro.handballstatspro.repositories.*;
+import com.HandballStats_Pro.handballstatspro.repositories.EquipoRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioEquipoRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.ClubRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.PartidoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -26,6 +31,7 @@ public class EquipoService {
     private final UsuarioRepository usuarioRepo;
     private final ClubRepository clubRepo;
     private final UsuarioClubRepository usuarioClubRepo;
+    private final PartidoRepository partidoRepository;
 
     private Authentication auth() {
         return SecurityContextHolder.getContext().getAuthentication();
@@ -184,6 +190,7 @@ public class EquipoService {
         return mapToDTO(equipoRepo.save(eq));
     }
 
+    @Transactional
     public void eliminarEquipo(Long id) {
         if (!role().equals("ROLE_Admin")) {
             throw new PermissionDeniedException();
@@ -191,6 +198,7 @@ public class EquipoService {
         Equipo eq = equipoRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Equipo", id));
         usuarioEquipoRepo.deleteByEquipo(eq);
+        partidoRepository.deleteByEquipoPropioId(id);
         equipoRepo.delete(eq);
     }
 

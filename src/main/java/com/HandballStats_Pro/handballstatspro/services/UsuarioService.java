@@ -9,7 +9,9 @@ import com.HandballStats_Pro.handballstatspro.exceptions.DuplicateResourceExcept
 import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
 import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
 import com.HandballStats_Pro.handballstatspro.repositories.UsuarioClubRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.UsuarioEquipoRepository;
 import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
+import com.HandballStats_Pro.handballstatspro.repositories.PartidoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +33,8 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final UsuarioClubRepository usuarioClubRepository;
+    private final UsuarioEquipoRepository usuarioEquipoRepository;
+    private final PartidoRepository partidoRepository;
 
     @Value("${avatar.max-size}")
     private long maxAvatarSize;
@@ -121,12 +125,48 @@ public class UsuarioService {
 
     @Transactional
     public void eliminarUsuario(Long id) {
-        Usuario usuario = usuarioRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+        System.out.println("DEBUG: Iniciando eliminación de usuario con ID: " + id);
+        Usuario usuario = null;
+        try {
+            usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));
+            System.out.println("DEBUG: Usuario encontrado: " + usuario.getIdUsuario());
+        } catch (ResourceNotFoundException e) {
+            System.err.println("ERROR: No se encontró el usuario con ID: " + id);
+            return; // Sale del método si el usuario no existe
+        }
 
-        // Eliminar todas las relaciones usuario-club primero
-        usuarioClubRepository.deleteByUsuario(usuario);
-        
-        usuarioRepository.delete(usuario);
+        try {
+            System.out.println("DEBUG: Eliminando relaciones usuario-club...");
+            usuarioClubRepository.deleteByUsuario(usuario);
+            System.out.println("DEBUG: Relaciones usuario-club eliminadas.");
+        } catch (Exception e) {
+            System.err.println("ERROR al eliminar relaciones usuario-club: " + e.getMessage());
+        }
+
+        try {
+            System.out.println("DEBUG: Eliminando relaciones usuario-equipo...");
+            usuarioEquipoRepository.deleteByUsuario_IdUsuario(id);
+            System.out.println("DEBUG: Relaciones usuario-equipo eliminadas.");
+        } catch (Exception e) {
+            System.err.println("ERROR al eliminar relaciones usuario-equipo: " + e.getMessage());
+        }
+
+        try {
+            System.out.println("DEBUG: Actualizando id_usuario_registro en partidos...");
+            partidoRepository.updateIdUsuarioRegistroToZero(id);
+            System.out.println("DEBUG: id_usuario_registro en partidos actualizado.");
+        } catch (Exception e) {
+            System.err.println("ERROR al actualizar id_usuario_registro en partidos: " + e.getMessage());
+        }
+
+        try {
+            System.out.println("DEBUG: Eliminando usuario...");
+            usuarioRepository.delete(usuario);
+            System.out.println("DEBUG: Usuario eliminado.");
+        } catch (Exception e) {
+            System.err.println("ERROR al eliminar usuario: " + e.getMessage());
+        }
+        System.out.println("DEBUG: Finalizada la eliminación de usuario con ID: " + id);
     }
 }

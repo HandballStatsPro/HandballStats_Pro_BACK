@@ -17,4 +17,5 @@ public interface UsuarioEquipoRepository extends JpaRepository<UsuarioEquipo, Us
     List<UsuarioEquipo> findByEquipo_IdEquipo(Long idEquipo);
     boolean existsByUsuario_IdUsuarioAndEquipo_IdEquipo(Long idUsuario, Long idEquipo);
     void deleteByEquipo(Equipo equipo);
+    void deleteByUsuario_IdUsuario(Long idUsuario);
 }

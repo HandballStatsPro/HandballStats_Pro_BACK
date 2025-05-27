@@ -3,6 +3,7 @@ package com.HandballStats_Pro.handballstatspro.repositories;
 import com.HandballStats_Pro.handballstatspro.entities.Partido;
 import com.HandballStats_Pro.handballstatspro.entities.Equipo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -44,4 +45,12 @@ public interface PartidoRepository extends JpaRepository<Partido, Integer> {
     @Query("SELECT e FROM Equipo e WHERE e.idEquipo IN " +
            "(SELECT ue.equipo.idEquipo FROM UsuarioEquipo ue WHERE ue.usuario.idUsuario = :idUsuario)")
     List<Equipo> findEquiposByEntrenador(@Param("idUsuario") Long idUsuario);
+
+    @Modifying
+    @Query("UPDATE Partido p SET p.idUsuarioRegistro = 0 WHERE p.idUsuarioRegistro = :idUsuario")
+    void updateIdUsuarioRegistroToZero(Long idUsuario);
+
+    @Modifying
+    @Query("DELETE FROM Partido p WHERE p.idEquipoPropio = :idEquipo")
+    void deleteByEquipoPropioId(Long idEquipo);
 }

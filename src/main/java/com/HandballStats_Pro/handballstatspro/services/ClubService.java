@@ -22,6 +22,7 @@ public class ClubService {
     private final ClubRepository clubRepository;
     private final UsuarioRepository usuarioRepository;
     private final UsuarioClubRepository usuarioClubRepository;
+    private final EquipoRepository equipoRepository;
 
     private Authentication auth() {
         return SecurityContextHolder.getContext().getAuthentication();
@@ -104,14 +105,27 @@ public class ClubService {
         return mapToResponseDTO(clubRepository.save(club));
     }
 
-    @Transactional
-    public void eliminarClub(Long id) {
-        if (!role().equals("ROLE_Admin")) throw new PermissionDeniedException();
-        Club club = clubRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Club", id));
-        usuarioClubRepository.deleteByClub(club);
-        clubRepository.delete(club);
-    }
+@Transactional
+public void eliminarClub(Long id) {
+    if (!role().equals("ROLE_Admin")) throw new PermissionDeniedException();
+    Club club = clubRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Club", id));
+    
+    // 1. Obtener todos los equipos del club
+    List<Equipo> equipos = equipoRepository.findByClub(club);
+    
+    // 2. Desvincular los equipos (setear club a null)
+    equipos.forEach(equipo -> {
+        equipo.setClub(null);
+        equipoRepository.save(equipo);
+    });
+    
+    // 3. Eliminar relaciones usuario-club
+    usuarioClubRepository.deleteByClub(club);
+    
+    // 4. Finalmente eliminar el club
+    clubRepository.delete(club);
+}
 
     public void asignarUsuarioAClub(UsuarioClubDTO dto) {
         Usuario u = usuarioRepository.findById(dto.getIdUsuario())
