@@ -14,4 +14,5 @@ public class PartidoUpdateDTO {
     private String nombreRival;
     private Boolean esLocal;
     private LocalDate fecha;
+    private String competicion;
 }

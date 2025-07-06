@@ -56,6 +56,7 @@ public class PartidoService {
         partido.setFecha(partidoDTO.getFecha());
         partido.setFechaRegistro(LocalDateTime.now());
         partido.setIdUsuarioRegistro(usuario.getIdUsuario());
+        partido.setCompeticion(partidoDTO.getCompeticion());
 
         Partido nuevoPartido = partidoRepository.save(partido);
         return mapToResponseDTO(nuevoPartido);
@@ -134,6 +135,9 @@ public class PartidoService {
         }
         if (partidoUpdateDTO.getFecha() != null) {
             partido.setFecha(partidoUpdateDTO.getFecha());
+        }
+        if (partidoUpdateDTO.getCompeticion() != null) {
+            partido.setCompeticion(partidoUpdateDTO.getCompeticion());
         }
 
         Partido partidoActualizado = partidoRepository.save(partido);
@@ -277,6 +281,7 @@ public class PartidoService {
         dto.setFecha(partido.getFecha());
         dto.setFechaRegistro(partido.getFechaRegistro());
         dto.setIdUsuarioRegistro(partido.getIdUsuarioRegistro());
+        dto.setCompeticion(partido.getCompeticion());
         return dto;
     }
     
@@ -285,7 +290,7 @@ public class PartidoService {
         dto.setIdEquipo(equipo.getIdEquipo());
         dto.setNombre(equipo.getNombre());
         dto.setCategoria(equipo.getCategoria());
-        dto.setCompeticion(equipo.getCompeticion());
+        dto.setTemporada(equipo.getTemporada());
         dto.setFechaCreacionEquipo(equipo.getFechaCreacionEquipo());
         
         if (equipo.getClub() != null) {

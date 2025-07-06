@@ -25,9 +25,9 @@ public class Equipo {
     @Column(nullable = false)
     private String categoria;
 
-    @Column(nullable = false)
-    private String competicion;
-
     @Column(name = "fecha_creacion_equipo", nullable = false)
     private LocalDateTime fechaCreacionEquipo;
+
+    @Column(name = "temporada", nullable = false, length = 10)
+    private String temporada;
 }

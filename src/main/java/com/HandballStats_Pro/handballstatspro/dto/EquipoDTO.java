@@ -13,9 +13,7 @@ public class EquipoDTO {
     @Size(max = 50)
     private String categoria;
 
-    @NotBlank
-    @Size(max = 50)
-    private String competicion;
-
     private Long idClub; // opcional según rol
+
+    private String temporada;
 }

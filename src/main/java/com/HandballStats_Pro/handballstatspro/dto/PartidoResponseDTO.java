@@ -14,4 +14,5 @@ public class PartidoResponseDTO {
     private LocalDate fecha;
     private LocalDateTime fechaRegistro;
     private Long idUsuarioRegistro;
+    private String competicion;
 }

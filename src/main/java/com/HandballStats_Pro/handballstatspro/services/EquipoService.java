@@ -58,7 +58,7 @@ public class EquipoService {
         Equipo eq = new Equipo();
         eq.setNombre(dto.getNombre());
         eq.setCategoria(dto.getCategoria());
-        eq.setCompeticion(dto.getCompeticion());
+        eq.setTemporada(dto.getTemporada());
         eq.setFechaCreacionEquipo(LocalDateTime.now());
 
         if (r.equals("ROLE_Admin")) {
@@ -170,7 +170,7 @@ public class EquipoService {
 
         if (dto.getNombre() != null)      eq.setNombre(dto.getNombre());
         if (dto.getCategoria() != null)   eq.setCategoria(dto.getCategoria());
-        if (dto.getCompeticion() != null) eq.setCompeticion(dto.getCompeticion());
+        if (dto.getTemporada() != null) eq.setTemporada(dto.getTemporada());
 
         if (dto.getIdClub() != null) {
             if (r.equals("ROLE_Admin")) {
@@ -336,7 +336,7 @@ public class EquipoService {
                 : null);
         dto.setNombre(eq.getNombre());
         dto.setCategoria(eq.getCategoria());
-        dto.setCompeticion(eq.getCompeticion());
+        dto.setTemporada(eq.getTemporada());
         dto.setFechaCreacionEquipo(eq.getFechaCreacionEquipo());
 
         if (role().equals("ROLE_Admin") || role().equals("ROLE_GestorClub")) {

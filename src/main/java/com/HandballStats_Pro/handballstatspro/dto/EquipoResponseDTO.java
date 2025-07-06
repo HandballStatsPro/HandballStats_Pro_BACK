@@ -12,7 +12,7 @@ public class EquipoResponseDTO {
     private String clubNombre;
     private String nombre;
     private String categoria;
-    private String competicion;
     private LocalDateTime fechaCreacionEquipo;
     private List<UsuarioSimpleDTO> entrenadores;
+    private String temporada;
 }

@@ -38,4 +38,7 @@ public class Partido {
     @ManyToOne
     @JoinColumn(name = "id_equipo_propio", referencedColumnName = "id_equipo", insertable = false, updatable = false)
     private Equipo equipoPropio;
+
+    @Column(name = "competicion", length = 100)
+    private String competicion;
 }

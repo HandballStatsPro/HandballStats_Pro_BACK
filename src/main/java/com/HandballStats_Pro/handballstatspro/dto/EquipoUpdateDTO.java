@@ -11,8 +11,7 @@ public class EquipoUpdateDTO {
     @Size(max = 50)
     private String categoria;
 
-    @Size(max = 50)
-    private String competicion;
-
     private Long idClub; // solo Admin o GestorClub
+
+    private String temporada;
 }
