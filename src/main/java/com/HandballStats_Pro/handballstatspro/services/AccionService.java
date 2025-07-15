@@ -261,7 +261,7 @@ public class AccionService {
                     accionDTO.getDetalleEvento() != DetalleEvento.Robo && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Pie && 
                     accionDTO.getDetalleEvento() != DetalleEvento.BalonFuera) {
-                    throw new ApiException("Para evento 'Perdida', detalle_evento debe ser uno de los valores válidos para pérdida");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_INVALID_DETAIL", "Para evento 'Perdida', detalle_evento debe ser uno de los valores válidos para pérdida");
                 }
                 break;
         }
