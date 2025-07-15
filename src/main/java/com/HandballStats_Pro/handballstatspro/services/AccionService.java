@@ -284,7 +284,7 @@ public class AccionService {
         }
         
         if (accionDTO.getCambioPosesion() != deberiaCambiarPosesion) {
-            throw new ApiException("El valor de cambio_posesion no es correcto según las reglas establecidas");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POSSESSION_CHANGE", "El valor de cambio_posesion no es correcto según las reglas establecidas");
         }
     }
     
