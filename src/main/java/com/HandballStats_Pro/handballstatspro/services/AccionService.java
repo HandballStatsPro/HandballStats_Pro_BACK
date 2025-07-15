@@ -216,7 +216,7 @@ public class AccionService {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "GOAL_REQUIRED_FIELDS", "Para evento 'Gol', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() != null) {
-                    throw new ApiException("Para evento 'Gol', detalle_evento debe ser nulo");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "GOAL_INVALID_DETAIL", "Para evento 'Gol', detalle_evento debe ser nulo");
                 }
                 break;
                 
