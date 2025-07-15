@@ -173,7 +173,7 @@ public class AccionService {
     private void validarRegla1_7Metros(AccionDTO accionDTO) {
         if (accionDTO.getOrigenAccion() == OrigenAccion._7m) {
             if (accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._7m) {
-                throw new ApiException("Si el origen_accion es '7m', detalle_finalizacion debe ser '7m'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_DETAIL", "Si el origen_accion es '7m', detalle_finalizacion debe ser '7m'");
             }
             if (accionDTO.getTipoAtaque() != TipoAtaque.Posicional) {
                 throw new ApiException("Si el origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
