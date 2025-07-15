@@ -317,7 +317,7 @@ public class AccionService {
         } else {
             // Si no hay acción anterior, solo 'Juego_Continuado' es válido (inicio de posesión)
             if (accionDTO.getOrigenAccion() != OrigenAccion.Juego_Continuado) {
-                throw new ApiException("Para la primera acción del partido, origen_accion debe ser 'Juego_Continuado'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_FIRST_ACTION", "Para la primera acción del partido, origen_accion debe ser 'Juego_Continuado'");
             }
         }
     }
