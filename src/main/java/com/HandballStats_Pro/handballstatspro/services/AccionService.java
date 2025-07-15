@@ -182,7 +182,7 @@ public class AccionService {
         
         if (accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._7m) {
             if (accionDTO.getOrigenAccion() != OrigenAccion._7m) {
-                throw new ApiException("Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_ORIGIN", "Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
             }
         }
     }
