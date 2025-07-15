@@ -248,7 +248,7 @@ public class AccionService {
                 
             case Perdida:
                 if (accionDTO.getDetalleFinalizacion() != null || accionDTO.getZonaLanzamiento() != null) {
-                    throw new ApiException("Para evento 'Perdida', detalle_finalizacion y zona_lanzamiento deben ser nulos");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_INVALID_FIELDS", "Para evento 'Perdida', detalle_finalizacion y zona_lanzamiento deben ser nulos");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
                     throw new ApiException("Para evento 'Perdida', detalle_evento es obligatorio");
