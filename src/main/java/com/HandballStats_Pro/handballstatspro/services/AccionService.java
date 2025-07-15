@@ -242,7 +242,7 @@ public class AccionService {
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Palo && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Fuera_Directo) {
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', detalle_evento debe ser 'Palo' o 'Fuera_Directo'");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_INVALID_DETAIL", "Para evento 'Lanzamiento_Fuera', detalle_evento debe ser 'Palo' o 'Fuera_Directo'");
                 }
                 break;
                 
