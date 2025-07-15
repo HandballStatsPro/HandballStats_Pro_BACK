@@ -229,7 +229,7 @@ public class AccionService {
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Parada_Portero && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Bloqueo_Defensor) {
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_evento debe ser 'Parada_Portero' o 'Bloqueo_Defensor'");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_STOPPED_INVALID_DETAIL", "Para evento 'Lanzamiento_Parado', detalle_evento debe ser 'Parada_Portero' o 'Bloqueo_Defensor'");
                 }
                 break;
                 
