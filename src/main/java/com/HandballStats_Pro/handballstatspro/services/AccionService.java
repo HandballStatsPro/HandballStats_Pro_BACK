@@ -238,7 +238,7 @@ public class AccionService {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_REQUIRED_FIELDS", "Para evento 'Lanzamiento_Fuera', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_REQUIRED_DETAIL", "Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Palo && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Fuera_Directo) {
