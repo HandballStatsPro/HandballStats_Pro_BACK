@@ -305,7 +305,7 @@ public class AccionService {
                 accionDTO.getOrigenAccion() == OrigenAccion.Rebote_indirecto) {
                 
                 if (accionAnterior.getCambioPosesion()) {
-                    throw new ApiException("Para origen_accion 'Rebote_directo' o 'Rebote_indirecto', la acción anterior debe tener cambio_posesion = false");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REBOUND_SEQUENCE", "Para origen_accion 'Rebote_directo' o 'Rebote_indirecto', la acción anterior debe tener cambio_posesion = false");
                 }
             }
             
