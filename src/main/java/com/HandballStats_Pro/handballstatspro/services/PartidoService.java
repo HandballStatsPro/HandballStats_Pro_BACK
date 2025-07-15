@@ -224,4 +224,25 @@ public class PartidoService {
         }
         return dto;
     }
+    
+    public List<PartidoResponseDTO> obtenerPartidosPorEquipo(Long idEquipo) {
+        Usuario usuario = obtenerUsuarioActual();
+        String rol = obtenerRolUsuario();
+        
+        // Verificar que el usuario tenga permiso sobre el equipo
+        if (!tienePermisoEquipo(idEquipo, usuario.getIdUsuario(), rol)) {
+            throw new PermissionDeniedException();
+        }
+        
+        return partidoRepository.findPartidosByEquiposAsociados(List.of(idEquipo)).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public List<PartidoResponseDTO> obtenerPartidosPorFecha(LocalDate fecha) {
+        return partidoRepository.findByFecha(fecha).stream()
+                .filter(this::puedeAccederPartido)
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
 }
