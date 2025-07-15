@@ -176,7 +176,7 @@ public class AccionService {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_DETAIL", "Si el origen_accion es '7m', detalle_finalizacion debe ser '7m'");
             }
             if (accionDTO.getTipoAtaque() != TipoAtaque.Posicional) {
-                throw new ApiException("Si el origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_TYPE", "Si el origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
             }
         }
         
