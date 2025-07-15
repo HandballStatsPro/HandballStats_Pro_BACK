@@ -194,7 +194,7 @@ public class AccionService {
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._1a_oleada && 
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._2a_oleada && 
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._3a_oleada) {
-                throw new ApiException("Si tipo_ataque es 'Contraataque', detalle_finalizacion debe ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_COUNTERATTACK_DETAIL", "Si tipo_ataque es 'Contraataque', detalle_finalizacion debe ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
         }
         
