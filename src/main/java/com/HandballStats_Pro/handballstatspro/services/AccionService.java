@@ -203,7 +203,7 @@ public class AccionService {
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._1a_oleada || 
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._2a_oleada || 
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._3a_oleada) {
-                throw new ApiException("Si tipo_ataque es 'Posicional', detalle_finalizacion no puede ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POSITIONAL_DETAIL", "Si tipo_ataque es 'Posicional', detalle_finalizacion no puede ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
         }
     }
