@@ -251,7 +251,7 @@ public class AccionService {
                     throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_INVALID_FIELDS", "Para evento 'Perdida', detalle_finalizacion y zona_lanzamiento deben ser nulos");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
-                    throw new ApiException("Para evento 'Perdida', detalle_evento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_REQUIRED_DETAIL", "Para evento 'Perdida', detalle_evento es obligatorio");
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Pasos && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Dobles && 
