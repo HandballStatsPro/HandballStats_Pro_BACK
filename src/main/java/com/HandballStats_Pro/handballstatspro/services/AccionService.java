@@ -222,7 +222,7 @@ public class AccionService {
                 
             case Lanzamiento_Parado:
                 if (accionDTO.getDetalleFinalizacion() == null || accionDTO.getZonaLanzamiento() == null) {
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_finalizacion y zona_lanzamiento son obligatorios");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_STOPPED_REQUIRED_FIELDS", "Para evento 'Lanzamiento_Parado', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
                     throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_evento es obligatorio");
