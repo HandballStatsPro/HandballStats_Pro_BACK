@@ -3,16 +3,16 @@ package com.HandballStats_Pro.handballstatspro.dto;
 import lombok.Data;
 import java.time.LocalDate;
 
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 @Data
 public class PartidoUpdateDTO {
-    @Size(max = 10, message = "El resultado no puede exceder los 10 caracteres")
-    private String resultado;
-    private Long idEquipoPropio;
-    @Size(max = 100, message = "El nombre del rival no puede exceder los 100 caracteres")
-    private String nombreRival;
-    private Boolean esLocal;
+    private String nombreEquipoLocal;
+    private String nombreEquipoVisitante;
+    private Long idEquipoLocalAsociado;
+    private Long idEquipoVisitanteAsociado;
     private LocalDate fecha;
+    @Pattern(regexp = "^$|\\d+-\\d+$", message = "El formato del resultado debe ser 'numero-numero' o estar vacío")
+    private String resultado;
     private String competicion;
 }

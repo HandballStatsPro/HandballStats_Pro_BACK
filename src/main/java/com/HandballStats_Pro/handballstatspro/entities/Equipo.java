@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import com.HandballStats_Pro.handballstatspro.enums.Sexo;
+
 @Entity
 @Table(name = "equipo")
 @Data
@@ -30,4 +32,8 @@ public class Equipo {
 
     @Column(name = "temporada", nullable = false, length = 10)
     private String temporada;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sexo", nullable = false)
+    private Sexo sexo;
 }

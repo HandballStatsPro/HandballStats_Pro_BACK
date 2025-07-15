@@ -58,6 +58,7 @@ public class EquipoService {
         Equipo eq = new Equipo();
         eq.setNombre(dto.getNombre());
         eq.setCategoria(dto.getCategoria());
+        eq.setSexo(dto.getSexo());
         eq.setTemporada(dto.getTemporada());
         eq.setFechaCreacionEquipo(LocalDateTime.now());
 
@@ -170,6 +171,7 @@ public class EquipoService {
 
         if (dto.getNombre() != null)      eq.setNombre(dto.getNombre());
         if (dto.getCategoria() != null)   eq.setCategoria(dto.getCategoria());
+        if (dto.getSexo() != null)        eq.setSexo(dto.getSexo());
         if (dto.getTemporada() != null) eq.setTemporada(dto.getTemporada());
 
         if (dto.getIdClub() != null) {
@@ -198,7 +200,7 @@ public class EquipoService {
         Equipo eq = equipoRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Equipo", id));
         usuarioEquipoRepo.deleteByEquipo(eq);
-        partidoRepository.deleteByEquipoPropioId(id);
+        partidoRepository.deleteByEquipoAsociadoId(id);
         equipoRepo.delete(eq);
     }
 
@@ -336,6 +338,7 @@ public class EquipoService {
                 : null);
         dto.setNombre(eq.getNombre());
         dto.setCategoria(eq.getCategoria());
+        dto.setSexo(eq.getSexo());
         dto.setTemporada(eq.getTemporada());
         dto.setFechaCreacionEquipo(eq.getFechaCreacionEquipo());
 

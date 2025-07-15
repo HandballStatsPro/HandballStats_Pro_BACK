@@ -48,9 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userDetails.getAuthorities()
                 );
 
-                System.out.println("[JwtFilter] token válido para email=" 
-                + userDetails.getUsername() 
-                + ", authorities=" + userDetails.getAuthorities());
+                // System.out.println("[JwtFilter] token válido para email=" 
+                // + userDetails.getUsername() 
+                // + ", authorities=" + userDetails.getAuthorities());
                 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }

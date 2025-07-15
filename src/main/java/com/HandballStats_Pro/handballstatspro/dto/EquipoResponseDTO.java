@@ -3,6 +3,8 @@ package com.HandballStats_Pro.handballstatspro.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.HandballStats_Pro.handballstatspro.enums.Sexo;
+
 import lombok.Data;
 
 @Data
@@ -15,4 +17,5 @@ public class EquipoResponseDTO {
     private LocalDateTime fechaCreacionEquipo;
     private List<UsuarioSimpleDTO> entrenadores;
     private String temporada;
+    private Sexo sexo;
 }

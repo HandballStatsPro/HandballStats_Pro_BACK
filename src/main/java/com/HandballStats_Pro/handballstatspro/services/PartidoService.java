@@ -1,62 +1,60 @@
 package com.HandballStats_Pro.handballstatspro.services;
 
-import com.HandballStats_Pro.handballstatspro.dto.PartidoDTO;
-import com.HandballStats_Pro.handballstatspro.dto.PartidoResponseDTO;
-import com.HandballStats_Pro.handballstatspro.dto.PartidoUpdateDTO;
+import com.HandballStats_Pro.handballstatspro.dto.*;
+import com.HandballStats_Pro.handballstatspro.entities.Equipo;
 import com.HandballStats_Pro.handballstatspro.entities.Partido;
 import com.HandballStats_Pro.handballstatspro.entities.Usuario;
-import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
 import com.HandballStats_Pro.handballstatspro.exceptions.PermissionDeniedException;
+import com.HandballStats_Pro.handballstatspro.exceptions.ResourceNotFoundException;
+import com.HandballStats_Pro.handballstatspro.repositories.EquipoRepository;
 import com.HandballStats_Pro.handballstatspro.repositories.PartidoRepository;
 import com.HandballStats_Pro.handballstatspro.repositories.UsuarioRepository;
-import com.HandballStats_Pro.handballstatspro.entities.Equipo;
-import com.HandballStats_Pro.handballstatspro.repositories.EquipoRepository;
-import com.HandballStats_Pro.handballstatspro.services.EquipoService;
-import com.HandballStats_Pro.handballstatspro.dto.EquipoResponseDTO;
-
-import org.springframework.stereotype.Service;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDate;
 
 @Service
 public class PartidoService {
 
     private final PartidoRepository partidoRepository;
     private final UsuarioRepository usuarioRepository;
-    private final EquipoService equipoService;
     private final EquipoRepository equipoRepository;
 
-    public PartidoService(PartidoRepository partidoRepository, UsuarioRepository usuarioRepository, EquipoService equipoService, EquipoRepository equipoRepository) {
+    public PartidoService(PartidoRepository partidoRepository, UsuarioRepository usuarioRepository, EquipoRepository equipoRepository) {
         this.partidoRepository = partidoRepository;
         this.usuarioRepository = usuarioRepository;
-        this.equipoService = equipoService;
         this.equipoRepository = equipoRepository;
     }
 
+    @Transactional
     public PartidoResponseDTO crearPartido(PartidoDTO partidoDTO) {
         Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        // Validar permisos según el rol
-        if (!puedeCrearPartido(partidoDTO.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+
+        // Lógica de permisos: si se asocia un equipo, el usuario debe tener acceso a él
+        if (partidoDTO.getIdEquipoLocalAsociado() != null && !tienePermisoEquipo(partidoDTO.getIdEquipoLocalAsociado(), usuario.getIdUsuario(), obtenerRolUsuario())) {
+            throw new PermissionDeniedException();
+        }
+        if (partidoDTO.getIdEquipoVisitanteAsociado() != null && !tienePermisoEquipo(partidoDTO.getIdEquipoVisitanteAsociado(), usuario.getIdUsuario(), obtenerRolUsuario())) {
             throw new PermissionDeniedException();
         }
 
         Partido partido = new Partido();
-        partido.setResultado(partidoDTO.getResultado());
-        partido.setIdEquipoPropio(partidoDTO.getIdEquipoPropio());
-        partido.setNombreRival(partidoDTO.getNombreRival());
-        partido.setEsLocal(partidoDTO.getEsLocal());
+        partido.setNombreEquipoLocal(partidoDTO.getNombreEquipoLocal());
+        partido.setNombreEquipoVisitante(partidoDTO.getNombreEquipoVisitante());
+        partido.setIdEquipoLocalAsociado(partidoDTO.getIdEquipoLocalAsociado());
+        partido.setIdEquipoVisitanteAsociado(partidoDTO.getIdEquipoVisitanteAsociado());
         partido.setFecha(partidoDTO.getFecha());
+        partido.setResultado(partidoDTO.getResultado());
+        partido.setCompeticion(partidoDTO.getCompeticion());
         partido.setFechaRegistro(LocalDateTime.now());
         partido.setIdUsuarioRegistro(usuario.getIdUsuario());
-        partido.setCompeticion(partidoDTO.getCompeticion());
 
         Partido nuevoPartido = partidoRepository.save(partido);
         return mapToResponseDTO(nuevoPartido);
@@ -65,191 +63,111 @@ public class PartidoService {
     public List<PartidoResponseDTO> listarPartidos() {
         Usuario usuario = obtenerUsuarioActual();
         String rol = obtenerRolUsuario();
-        
-        List<Partido> partidos;
-        
+
         if ("ROLE_Admin".equals(rol)) {
-            // Admin puede ver todos los partidos
-            partidos = partidoRepository.findAll();
-        } else if ("ROLE_GestorClub".equals(rol)) {
-            // Gestor puede ver partidos de equipos de sus clubes
-            partidos = partidoRepository.findPartidosByGestorClub(usuario.getIdUsuario());
-        } else if ("ROLE_Entrenador".equals(rol)) {
-            // Entrenador puede ver partidos de sus equipos
-            partidos = partidoRepository.findPartidosByEntrenador(usuario.getIdUsuario());
-        } else {
-            partidos = List.of(); // Otros roles no tienen acceso
-        }
-        
-        return partidos.stream()
+            return partidoRepository.findAll().stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+        }
+
+        // 1. Obtener los partidos donde el usuario gestiona al menos uno de los equipos
+        List<Long> equipoIds;
+        if ("ROLE_GestorClub".equals(rol)) {
+            equipoIds = partidoRepository.findEquiposByGestorClub(usuario.getIdUsuario()).stream().map(Equipo::getIdEquipo).toList();
+        } else if ("ROLE_Entrenador".equals(rol)) {
+            equipoIds = partidoRepository.findEquiposByEntrenador(usuario.getIdUsuario()).stream().map(Equipo::getIdEquipo).toList();
+        } else {
+            equipoIds = List.of();
+        }
+
+        List<Partido> partidosAsociados = equipoIds.isEmpty()
+            ? List.of()
+            : partidoRepository.findPartidosByEquiposAsociados(equipoIds);
+
+        // 2. Obtener los partidos de scouting creados por este usuario
+        List<Partido> partidosDeScouting = partidoRepository.findScoutingPartidosByRegistrador(usuario.getIdUsuario());
+
+        // 3. Combinar ambas listas sin duplicados
+        // Usamos un Set para asegurar que cada partido aparezca solo una vez
+        java.util.Set<Partido> partidosUnicos = new java.util.LinkedHashSet<>(partidosAsociados);
+        partidosUnicos.addAll(partidosDeScouting);
+
+        // 4. Mapear el resultado final a DTOs
+        return new java.util.ArrayList<>(partidosUnicos).stream()
+            .map(this::mapToResponseDTO)
+            .collect(Collectors.toList());
     }
 
     public PartidoResponseDTO obtenerPartidoPorId(Integer id) {
         Partido partido = partidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
-        
-        Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        // Validar permisos según el rol
-        if (!puedeAccederPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+
+        if (!puedeAccederPartido(partido)) {
             throw new PermissionDeniedException();
         }
-        
         return mapToResponseDTO(partido);
     }
 
-    public PartidoResponseDTO actualizarPartido(Integer id, PartidoUpdateDTO partidoUpdateDTO) {
+    @Transactional
+    public PartidoResponseDTO actualizarPartido(Integer id, PartidoUpdateDTO dto) {
         Partido partido = partidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
-        
-        Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        // Validar permisos según el rol
-        if (!puedeEditarPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+
+        if (!puedeAccederPartido(partido)) {
             throw new PermissionDeniedException();
         }
-        
-        // Si se cambia el equipo propio, validar que tenga permisos sobre el nuevo equipo
-        if (partidoUpdateDTO.getIdEquipoPropio() != null && 
-            !partidoUpdateDTO.getIdEquipoPropio().equals(partido.getIdEquipoPropio())) {
-            if (!puedeCrearPartido(partidoUpdateDTO.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
-                throw new PermissionDeniedException();
-            }
-        }
 
-        if (partidoUpdateDTO.getResultado() != null) {
-            partido.setResultado(partidoUpdateDTO.getResultado());
-        }
-        if (partidoUpdateDTO.getIdEquipoPropio() != null) {
-            partido.setIdEquipoPropio(partidoUpdateDTO.getIdEquipoPropio());
-        }
-        if (partidoUpdateDTO.getNombreRival() != null) {
-            partido.setNombreRival(partidoUpdateDTO.getNombreRival());
-        }
-        if (partidoUpdateDTO.getEsLocal() != null) {
-            partido.setEsLocal(partidoUpdateDTO.getEsLocal());
-        }
-        if (partidoUpdateDTO.getFecha() != null) {
-            partido.setFecha(partidoUpdateDTO.getFecha());
-        }
-        if (partidoUpdateDTO.getCompeticion() != null) {
-            partido.setCompeticion(partidoUpdateDTO.getCompeticion());
-        }
+        // Actualizar campos
+        if (dto.getNombreEquipoLocal() != null) partido.setNombreEquipoLocal(dto.getNombreEquipoLocal());
+        if (dto.getNombreEquipoVisitante() != null) partido.setNombreEquipoVisitante(dto.getNombreEquipoVisitante());
+        if (dto.getFecha() != null) partido.setFecha(dto.getFecha());
+        if (dto.getResultado() != null) partido.setResultado(dto.getResultado());
+        if (dto.getCompeticion() != null) partido.setCompeticion(dto.getCompeticion());
+
+        // La lógica para cambiar los equipos asociados puede ser compleja, aquí un ejemplo simple
+        partido.setIdEquipoLocalAsociado(dto.getIdEquipoLocalAsociado());
+        partido.setIdEquipoVisitanteAsociado(dto.getIdEquipoVisitanteAsociado());
+
 
         Partido partidoActualizado = partidoRepository.save(partido);
         return mapToResponseDTO(partidoActualizado);
     }
 
+    @Transactional
     public void eliminarPartido(Integer id) {
         Partido partido = partidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(id)));
-        
-        Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        // Validar permisos según el rol
-        if (!puedeEliminarPartido(partido.getIdEquipoPropio(), usuario.getIdUsuario(), rol)) {
+
+        if (!puedeAccederPartido(partido)) {
             throw new PermissionDeniedException();
         }
-        
         partidoRepository.delete(partido);
     }
 
-    public List<PartidoResponseDTO> obtenerPartidosPorEquipo(Long idEquipo) {
+    // --- MÉTODOS PRIVADOS Y DE AYUDA ---
+
+    public boolean puedeAccederPartido(Partido partido) {
         Usuario usuario = obtenerUsuarioActual();
         String rol = obtenerRolUsuario();
-        
-        // Validar que el usuario tenga acceso al equipo
-        if (!puedeAccederPartido(idEquipo, usuario.getIdUsuario(), rol)) {
-            throw new PermissionDeniedException();
+
+        if ("ROLE_Admin".equals(rol)) return true;
+
+        // Para partidos de scouting (sin equipos asociados), solo el creador puede verlos/editarlos
+        if (partido.getIdEquipoLocalAsociado() == null && partido.getIdEquipoVisitanteAsociado() == null) {
+            return partido.getIdUsuarioRegistro().equals(usuario.getIdUsuario());
         }
-        
-        List<Partido> partidos = partidoRepository.findByIdEquipoPropio(idEquipo);
-        return partidos.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
+
+        // Para partidos con equipos asociados, debe tener permiso sobre al menos uno
+        boolean accesoLocal = (partido.getIdEquipoLocalAsociado() != null) && tienePermisoEquipo(partido.getIdEquipoLocalAsociado(), usuario.getIdUsuario(), rol);
+        boolean accesoVisitante = (partido.getIdEquipoVisitanteAsociado() != null) && tienePermisoEquipo(partido.getIdEquipoVisitanteAsociado(), usuario.getIdUsuario(), rol);
+
+        return accesoLocal || accesoVisitante;
     }
 
-    public List<PartidoResponseDTO> obtenerPartidosPorFecha(LocalDate fecha) {
-        Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        List<Partido> partidos = partidoRepository.findByFecha(fecha);
-        
-        // Filtrar según permisos del usuario
-        if ("ROLE_Admin".equals(rol)) {
-            // Admin puede ver todos
-        } else if ("ROLE_GestorClub".equals(rol)) {
-            // Filtrar solo equipos de sus clubes
-            partidos = partidos.stream()
-                    .filter(p -> partidoRepository.existsEquipoInGestorClubes(p.getIdEquipoPropio(), usuario.getIdUsuario()))
-                    .collect(Collectors.toList());
-        } else if ("ROLE_Entrenador".equals(rol)) {
-            // Filtrar solo sus equipos
-            partidos = partidos.stream()
-                    .filter(p -> partidoRepository.existsEquipoInEntrenador(p.getIdEquipoPropio(), usuario.getIdUsuario()))
-                    .collect(Collectors.toList());
-        } else {
-            partidos = List.of();
-        }
-        
-        return partidos.stream()
-                .map(this::mapToResponseDTO)
-                .collect(Collectors.toList());
-    }
+    private boolean tienePermisoEquipo(Long idEquipo, Long idUsuario, String rol) {
+        if ("ROLE_Admin".equals(rol)) return true; 
 
-    public List<EquipoResponseDTO> obtenerEquiposDisponibles() {
-        Usuario usuario = obtenerUsuarioActual();
-        String rol = obtenerRolUsuario();
-        
-        List<Equipo> equipos;
-        
-        if ("ROLE_Admin".equals(rol)) {
-            // Admin puede ver todos los equipos
-            equipos = equipoRepository.findAll();
-        } else if ("ROLE_GestorClub".equals(rol)) {
-            // Gestor puede ver equipos de sus clubes
-            equipos = partidoRepository.findEquiposByGestorClub(usuario.getIdUsuario());
-        } else if ("ROLE_Entrenador".equals(rol)) {
-            // Entrenador puede ver sus equipos
-            equipos = partidoRepository.findEquiposByEntrenador(usuario.getIdUsuario());
-        } else {
-            equipos = List.of();
-        }
-        
-        return equipos.stream()
-                .map(this::mapEquipoToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
-    // Métodos privados para validación de permisos
-    private boolean puedeCrearPartido(Long idEquipo, Long idUsuario, String rol) {
-        if ("ROLE_Admin".equals(rol)) {
-            return true;
-        } else if ("ROLE_GestorClub".equals(rol)) {
-            return partidoRepository.existsEquipoInGestorClubes(idEquipo, idUsuario);
-        } else if ("ROLE_Entrenador".equals(rol)) {
-            return partidoRepository.existsEquipoInEntrenador(idEquipo, idUsuario);
-        }
-        return false;
-    }
-
-    private boolean puedeAccederPartido(Long idEquipo, Long idUsuario, String rol) {
-        return puedeCrearPartido(idEquipo, idUsuario, rol);
-    }
-
-    private boolean puedeEditarPartido(Long idEquipo, Long idUsuario, String rol) {
-        return puedeCrearPartido(idEquipo, idUsuario, rol);
-    }
-
-    private boolean puedeEliminarPartido(Long idEquipo, Long idUsuario, String rol) {
-        if ("ROLE_Admin".equals(rol)) {
-            return true;
-        } else if ("ROLE_GestorClub".equals(rol)) {
+        if ("ROLE_GestorClub".equals(rol)) {
             return partidoRepository.existsEquipoInGestorClubes(idEquipo, idUsuario);
         } else if ("ROLE_Entrenador".equals(rol)) {
             return partidoRepository.existsEquipoInEntrenador(idEquipo, idUsuario);
@@ -274,30 +192,36 @@ public class PartidoService {
     private PartidoResponseDTO mapToResponseDTO(Partido partido) {
         PartidoResponseDTO dto = new PartidoResponseDTO();
         dto.setIdPartido(partido.getIdPartido());
+        dto.setNombreEquipoLocal(partido.getNombreEquipoLocal());
+        dto.setNombreEquipoVisitante(partido.getNombreEquipoVisitante());
+        dto.setIdEquipoLocalAsociado(partido.getIdEquipoLocalAsociado());
+        dto.setIdEquipoVisitanteAsociado(partido.getIdEquipoVisitanteAsociado());
         dto.setResultado(partido.getResultado());
-        dto.setIdEquipoPropio(partido.getIdEquipoPropio());
-        dto.setNombreRival(partido.getNombreRival());
-        dto.setEsLocal(partido.getEsLocal());
         dto.setFecha(partido.getFecha());
+        dto.setCompeticion(partido.getCompeticion());
         dto.setFechaRegistro(partido.getFechaRegistro());
         dto.setIdUsuarioRegistro(partido.getIdUsuarioRegistro());
-        dto.setCompeticion(partido.getCompeticion());
         return dto;
     }
-    
+
+    // Este método ya no es necesario aquí, ya que la lógica de equipos disponibles puede vivir en EquipoService
+    public List<EquipoResponseDTO> obtenerEquiposDisponibles() {
+        // Se podría mover esta lógica a EquipoService y llamarla desde aquí si fuera necesario
+        // Por ahora, lo dejamos simple. El frontend puede llamar a /equipo para obtener la lista
+        return equipoRepository.findAll().stream().map(this::mapEquipoToResponseDTO).collect(Collectors.toList());
+    }
+
     private EquipoResponseDTO mapEquipoToResponseDTO(Equipo equipo) {
         EquipoResponseDTO dto = new EquipoResponseDTO();
         dto.setIdEquipo(equipo.getIdEquipo());
         dto.setNombre(equipo.getNombre());
         dto.setCategoria(equipo.getCategoria());
+        dto.setSexo(equipo.getSexo());
         dto.setTemporada(equipo.getTemporada());
-        dto.setFechaCreacionEquipo(equipo.getFechaCreacionEquipo());
-        
         if (equipo.getClub() != null) {
-            dto.setIdClub(equipo.getClub().getIdClub());
             dto.setClubNombre(equipo.getClub().getNombre());
+            dto.setIdClub(equipo.getClub().getIdClub());
         }
-        
         return dto;
     }
 }

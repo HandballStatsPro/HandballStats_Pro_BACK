@@ -1,6 +1,9 @@
 package com.HandballStats_Pro.handballstatspro.dto;
 
 import lombok.Data;
+
+import com.HandballStats_Pro.handballstatspro.enums.Sexo;
+
 import jakarta.validation.constraints.*;
 
 @Data
@@ -16,4 +19,6 @@ public class EquipoDTO {
     private Long idClub; // opcional según rol
 
     private String temporada;
+
+    private Sexo sexo;
 }
