@@ -311,7 +311,7 @@ public class AccionService {
             
             if (accionDTO.getOrigenAccion() == OrigenAccion.Juego_Continuado) {
                 if (!accionAnterior.getCambioPosesion()) {
-                    throw new ApiException("Para origen_accion 'Juego_Continuado', la acción anterior debe tener cambio_posesion = true");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CONTINUOUS_GAME_SEQUENCE", "Para origen_accion 'Juego_Continuado', la acción anterior debe tener cambio_posesion = true");
                 }
             }
         } else {
