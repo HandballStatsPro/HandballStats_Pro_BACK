@@ -329,47 +329,86 @@ public class AccionService {
     
     // Regla 3: Lógica del Evento Principal
     private void validarRegla3_EventoPrincipal(AccionDTO accionDTO) {
+        System.out.println("🎪 [REGLA 3] Validando lógica del evento principal");
+        System.out.println("   📊 Evento: " + accionDTO.getEvento());
+        System.out.println("   📊 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion());
+        System.out.println("   📊 ZonaLanzamiento: " + accionDTO.getZonaLanzamiento());
+        System.out.println("   📊 DetalleEvento: " + accionDTO.getDetalleEvento());
+        
         switch (accionDTO.getEvento()) {
             case Gol:
+                System.out.println("   ⚽ Validando evento 'Gol'");
                 if (accionDTO.getDetalleFinalizacion() == null || accionDTO.getZonaLanzamiento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Gol', detalle_finalizacion y zona_lanzamiento son obligatorios");
+                    System.out.println("   💡 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion() + " (debe ser no nulo)");
+                    System.out.println("   💡 ZonaLanzamiento: " + accionDTO.getZonaLanzamiento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "GOAL_REQUIRED_FIELDS", "Para evento 'Gol', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() != null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Gol', detalle_evento debe ser nulo");
+                    System.out.println("   💡 DetalleEvento actual: " + accionDTO.getDetalleEvento() + " (debe ser nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "GOAL_INVALID_DETAIL", "Para evento 'Gol', detalle_evento debe ser nulo");
                 }
+                System.out.println("   ✅ Evento 'Gol' validado correctamente");
                 break;
                 
             case Lanzamiento_Parado:
+                System.out.println("   🛡️ Validando evento 'Lanzamiento_Parado'");
                 if (accionDTO.getDetalleFinalizacion() == null || accionDTO.getZonaLanzamiento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Parado', detalle_finalizacion y zona_lanzamiento son obligatorios");
+                    System.out.println("   💡 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion() + " (debe ser no nulo)");
+                    System.out.println("   💡 ZonaLanzamiento: " + accionDTO.getZonaLanzamiento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_STOPPED_REQUIRED_FIELDS", "Para evento 'Lanzamiento_Parado', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Parado', detalle_evento es obligatorio");
+                    System.out.println("   💡 DetalleEvento: " + accionDTO.getDetalleEvento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_STOPPED_REQUIRED_DETAIL", "Para evento 'Lanzamiento_Parado', detalle_evento es obligatorio");
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Parada_Portero && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Bloqueo_Defensor) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Parado', detalle_evento debe ser específico");
+                    System.out.println("   💡 Valores válidos: Parada_Portero, Bloqueo_Defensor");
+                    System.out.println("   💡 Valor actual: " + accionDTO.getDetalleEvento());
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_STOPPED_INVALID_DETAIL", "Para evento 'Lanzamiento_Parado', detalle_evento debe ser 'Parada_Portero' o 'Bloqueo_Defensor'");
                 }
+                System.out.println("   ✅ Evento 'Lanzamiento_Parado' validado correctamente");
                 break;
                 
             case Lanzamiento_Fuera:
+                System.out.println("   🎯 Validando evento 'Lanzamiento_Fuera'");
                 if (accionDTO.getDetalleFinalizacion() == null || accionDTO.getZonaLanzamiento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Fuera', detalle_finalizacion y zona_lanzamiento son obligatorios");
+                    System.out.println("   💡 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion() + " (debe ser no nulo)");
+                    System.out.println("   💡 ZonaLanzamiento: " + accionDTO.getZonaLanzamiento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_REQUIRED_FIELDS", "Para evento 'Lanzamiento_Fuera', detalle_finalizacion y zona_lanzamiento son obligatorios");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
+                    System.out.println("   💡 DetalleEvento: " + accionDTO.getDetalleEvento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_REQUIRED_DETAIL", "Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Palo && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Fuera_Directo) {
+                    System.out.println("   ❌ ERROR: Para evento 'Lanzamiento_Fuera', detalle_evento debe ser específico");
+                    System.out.println("   💡 Valores válidos: Palo, Fuera_Directo");
+                    System.out.println("   💡 Valor actual: " + accionDTO.getDetalleEvento());
                     throw new ApiException(HttpStatus.BAD_REQUEST, "SHOT_MISSED_INVALID_DETAIL", "Para evento 'Lanzamiento_Fuera', detalle_evento debe ser 'Palo' o 'Fuera_Directo'");
                 }
+                System.out.println("   ✅ Evento 'Lanzamiento_Fuera' validado correctamente");
                 break;
                 
             case Perdida:
+                System.out.println("   💥 Validando evento 'Perdida'");
                 if (accionDTO.getDetalleFinalizacion() != null || accionDTO.getZonaLanzamiento() != null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Perdida', detalle_finalizacion y zona_lanzamiento deben ser nulos");
+                    System.out.println("   💡 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion() + " (debe ser nulo)");
+                    System.out.println("   💡 ZonaLanzamiento: " + accionDTO.getZonaLanzamiento() + " (debe ser nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_INVALID_FIELDS", "Para evento 'Perdida', detalle_finalizacion y zona_lanzamiento deben ser nulos");
                 }
                 if (accionDTO.getDetalleEvento() == null) {
+                    System.out.println("   ❌ ERROR: Para evento 'Perdida', detalle_evento es obligatorio");
+                    System.out.println("   💡 DetalleEvento: " + accionDTO.getDetalleEvento() + " (debe ser no nulo)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_REQUIRED_DETAIL", "Para evento 'Perdida', detalle_evento es obligatorio");
                 }
                 if (accionDTO.getDetalleEvento() != DetalleEvento.Pasos && 
@@ -380,10 +419,16 @@ public class AccionService {
                     accionDTO.getDetalleEvento() != DetalleEvento.Robo && 
                     accionDTO.getDetalleEvento() != DetalleEvento.Pie && 
                     accionDTO.getDetalleEvento() != DetalleEvento.BalonFuera) {
+                    System.out.println("   ❌ ERROR: Para evento 'Perdida', detalle_evento debe ser uno de los valores específicos");
+                    System.out.println("   💡 Valores válidos: Pasos, Dobles, FaltaAtaque, Pasivo, InvasionArea, Robo, Pie, BalonFuera");
+                    System.out.println("   💡 Valor actual: " + accionDTO.getDetalleEvento());
                     throw new ApiException(HttpStatus.BAD_REQUEST, "TURNOVER_INVALID_DETAIL", "Para evento 'Perdida', detalle_evento debe ser uno de los valores válidos para pérdida");
                 }
+                System.out.println("   ✅ Evento 'Perdida' validado correctamente");
                 break;
         }
+        
+        System.out.println("   ✅ [REGLA 3] Validación de evento principal completada exitosamente");
     }
     
     // Regla 4: Lógica de Cambio de Posesión
