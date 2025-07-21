@@ -433,23 +433,40 @@ public class AccionService {
     
     // Regla 4: Lógica de Cambio de Posesión
     private void validarRegla4_CambioPosesion(AccionDTO accionDTO) {
+        System.out.println("🔄 [REGLA 4] Validando lógica de cambio de posesión");
+        System.out.println("   📊 CambioPosesion actual: " + accionDTO.getCambioPosesion());
+        System.out.println("   📊 Evento: " + accionDTO.getEvento());
+        System.out.println("   📊 DetalleEvento: " + accionDTO.getDetalleEvento());
+        
         boolean deberiaCambiarPosesion = true;
         
         // Casos donde NO cambia la posesión
+        System.out.println("   🔍 Analizando casos donde NO debería cambiar la posesión...");
+        
         if (accionDTO.getEvento() == Evento.Lanzamiento_Parado && 
             (accionDTO.getDetalleEvento() == DetalleEvento.Parada_Portero || 
              accionDTO.getDetalleEvento() == DetalleEvento.Bloqueo_Defensor)) {
             deberiaCambiarPosesion = false;
+            System.out.println("   ✅ Caso detectado: Lanzamiento_Parado con Parada_Portero/Bloqueo_Defensor -> NO cambia posesión");
         }
         
         if (accionDTO.getEvento() == Evento.Lanzamiento_Fuera && 
             accionDTO.getDetalleEvento() == DetalleEvento.Palo) {
             deberiaCambiarPosesion = false;
+            System.out.println("   ✅ Caso detectado: Lanzamiento_Fuera con Palo -> NO cambia posesión");
         }
         
+        System.out.println("   💡 Cambio de posesión calculado: " + deberiaCambiarPosesion);
+        System.out.println("   💡 Cambio de posesión proporcionado: " + accionDTO.getCambioPosesion());
+        
         if (accionDTO.getCambioPosesion() != deberiaCambiarPosesion) {
+            System.out.println("   ❌ ERROR: El valor de cambio_posesion no coincide con las reglas establecidas");
+            System.out.println("   💡 Valor esperado: " + deberiaCambiarPosesion);
+            System.out.println("   💡 Valor proporcionado: " + accionDTO.getCambioPosesion());
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POSSESSION_CHANGE", "El valor de cambio_posesion no es correcto según las reglas establecidas");
         }
+        
+        System.out.println("   ✅ [REGLA 4] Validación de cambio de posesión completada exitosamente");
     }
     
     // Regla 5: Lógica Secuencial (Validación entre Acciones)
