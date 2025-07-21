@@ -222,7 +222,7 @@ public class AccionValidationFlowTest {
             accion.setTipoAtaque(TipoAtaque.Posicional);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -263,7 +263,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(null); // Debe ser nulo para gol
             accion.setCambioPosesion(true);
             
@@ -279,7 +279,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(null); // ❌ Obligatorio para gol
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(null);
             
             ApiException exception = assertThrows(ApiException.class, 
@@ -297,7 +297,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Parada_Portero); // ❌ Debe ser nulo para gol
             
             ApiException exception = assertThrows(ApiException.class, 
@@ -315,7 +315,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Parada_Portero);
             accion.setCambioPosesion(false); // No cambia posesión por parada
             
@@ -347,7 +347,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Palo); // ❌ Solo válido para Lanzamiento_Fuera
             
             ApiException exception = assertThrows(ApiException.class, 
@@ -381,7 +381,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Fuera);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Penetracion);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Fuera_Directo);
             accion.setCambioPosesion(true); // Sí cambia posesión por fuera directo
             
@@ -413,7 +413,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Perdida);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote); // ❌ Debe ser nulo
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m); // ❌ Debe ser nulo
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro); // ❌ Debe ser nulo
             accion.setDetalleEvento(DetalleEvento.Pasos);
             
             ApiException exception = assertThrows(ApiException.class, 
@@ -439,7 +439,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Parada_Portero);
             accion.setCambioPosesion(false); // Correcto: NO cambia
             
@@ -455,7 +455,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Parada_Portero);
             accion.setCambioPosesion(true); // ❌ Incorrecto: debería ser false
             
@@ -506,7 +506,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(null);
             accion.setCambioPosesion(true); // Correcto: SÍ cambia
             
@@ -522,7 +522,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Fuera);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Penetracion);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setDetalleEvento(DetalleEvento.Fuera_Directo);
             accion.setCambioPosesion(true); // Correcto: SÍ cambia
             
@@ -566,7 +566,7 @@ public class AccionValidationFlowTest {
             accion.setOrigenAccion(OrigenAccion.Juego_Continuado); // Correcto para primera acción
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -585,7 +585,7 @@ public class AccionValidationFlowTest {
             accion.setOrigenAccion(OrigenAccion.Rebote_directo); // ❌ Incorrecto para primera acción
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             
             ApiException exception = assertThrows(ApiException.class, 
                 () -> accionService.crearAccion(accion));
@@ -610,7 +610,7 @@ public class AccionValidationFlowTest {
             accion.setOrigenAccion(OrigenAccion.Rebote_directo);
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -633,7 +633,7 @@ public class AccionValidationFlowTest {
             accion.setOrigenAccion(OrigenAccion.Rebote_directo);
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             
             ApiException exception = assertThrows(ApiException.class, 
                 () -> accionService.crearAccion(accion));
@@ -682,7 +682,7 @@ public class AccionValidationFlowTest {
             accion.setOrigenAccion(OrigenAccion.Juego_Continuado);
             accion.setEvento(Evento.Gol);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             
             ApiException exception = assertThrows(ApiException.class, 
                 () -> accionService.crearAccion(accion));
@@ -708,7 +708,7 @@ public class AccionValidationFlowTest {
             accion.setDetalleFinalizacion(DetalleFinalizacion._7m);
             accion.setTipoAtaque(TipoAtaque.Posicional);
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -736,7 +736,7 @@ public class AccionValidationFlowTest {
             accion1.setOrigenAccion(OrigenAccion.Juego_Continuado);
             accion1.setEvento(Evento.Lanzamiento_Parado);
             accion1.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion1.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion1.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion1.setDetalleEvento(DetalleEvento.Parada_Portero);
             accion1.setCambioPosesion(false);
             
@@ -753,7 +753,7 @@ public class AccionValidationFlowTest {
             accion2.setOrigenAccion(OrigenAccion.Rebote_directo);
             accion2.setEvento(Evento.Gol);
             accion2.setDetalleFinalizacion(DetalleFinalizacion.Pivote);
-            accion2.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion2.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion2.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion2));
@@ -849,7 +849,7 @@ public class AccionValidationFlowTest {
                     accion.setOrigenAccion(OrigenAccion._7m);
                 }
                 accion.setEvento(Evento.Gol);
-                accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+                accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
                 accion.setCambioPosesion(true);
                 
                 assertDoesNotThrow(() -> accionService.crearAccion(accion));
