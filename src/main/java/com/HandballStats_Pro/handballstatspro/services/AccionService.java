@@ -471,36 +471,69 @@ public class AccionService {
     
     // Regla 5: Lógica Secuencial (Validación entre Acciones)
     private void validarRegla5_LogicaSecuencial(AccionDTO accionDTO) {
+        System.out.println("🔗 [REGLA 5] Validando lógica secuencial entre acciones");
+        System.out.println("   📊 OrigenAccion: " + accionDTO.getOrigenAccion());
+        System.out.println("   📊 IdPartido: " + accionDTO.getIdPartido());
+        
         // El origen_accion de '7m' no se rige por esta regla secuencial
         if (accionDTO.getOrigenAccion() == OrigenAccion._7m) {
+            System.out.println("   ℹ️ OrigenAccion es '7m' - Se omite validación secuencial según las reglas");
+            System.out.println("   ✅ [REGLA 5] Validación secuencial completada (exenta para 7m)");
             return;
         }
         
         // Buscar la última acción en el partido
+        System.out.println("   🔍 Buscando la última acción en el partido...");
         Optional<Accion> ultimaAccion = accionRepository.findLastActionInMatch(accionDTO.getIdPartido());
         
         if (ultimaAccion.isPresent()) {
             Accion accionAnterior = ultimaAccion.get();
+            System.out.println("   ✅ Acción anterior encontrada:");
+            System.out.println("       📊 ID: " + accionAnterior.getIdAccion());
+            System.out.println("       📊 OrigenAccion: " + accionAnterior.getOrigenAccion());
+            System.out.println("       📊 CambioPosesion: " + accionAnterior.getCambioPosesion());
+            System.out.println("       📊 Evento: " + accionAnterior.getEvento());
             
             if (accionDTO.getOrigenAccion() == OrigenAccion.Rebote_directo || 
                 accionDTO.getOrigenAccion() == OrigenAccion.Rebote_indirecto) {
                 
+                System.out.println("   🔍 Validando secuencia para rebote (directo/indirecto)");
+                System.out.println("   💡 REGLA: Para rebotes, la acción anterior debe tener cambio_posesion = false");
+                
                 if (accionAnterior.getCambioPosesion()) {
+                    System.out.println("   ❌ ERROR: Para rebotes, la acción anterior debe tener cambio_posesion = false");
+                    System.out.println("   💡 Acción anterior cambio_posesion: " + accionAnterior.getCambioPosesion() + " (debería ser false)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_REBOUND_SEQUENCE", "Para origen_accion 'Rebote_directo' o 'Rebote_indirecto', la acción anterior debe tener cambio_posesion = false");
                 }
+                System.out.println("   ✅ Secuencia válida para rebote: acción anterior NO cambió posesión");
             }
             
             if (accionDTO.getOrigenAccion() == OrigenAccion.Juego_Continuado) {
+                System.out.println("   🔍 Validando secuencia para juego continuado");
+                System.out.println("   💡 REGLA: Para juego continuado, la acción anterior debe tener cambio_posesion = true");
+                
                 if (!accionAnterior.getCambioPosesion()) {
+                    System.out.println("   ❌ ERROR: Para juego continuado, la acción anterior debe tener cambio_posesion = true");
+                    System.out.println("   💡 Acción anterior cambio_posesion: " + accionAnterior.getCambioPosesion() + " (debería ser true)");
                     throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_CONTINUOUS_GAME_SEQUENCE", "Para origen_accion 'Juego_Continuado', la acción anterior debe tener cambio_posesion = true");
                 }
+                System.out.println("   ✅ Secuencia válida para juego continuado: acción anterior SÍ cambió posesión");
             }
+            
         } else {
             // Si no hay acción anterior, solo 'Juego_Continuado' es válido (inicio de posesión)
+            System.out.println("   ℹ️ No se encontró acción anterior - Esta es la primera acción del partido");
+            System.out.println("   💡 REGLA: Para la primera acción, origen_accion debe ser 'Juego_Continuado'");
+            
             if (accionDTO.getOrigenAccion() != OrigenAccion.Juego_Continuado) {
+                System.out.println("   ❌ ERROR: Para la primera acción del partido, origen_accion debe ser 'Juego_Continuado'");
+                System.out.println("   💡 OrigenAccion actual: " + accionDTO.getOrigenAccion() + " (debería ser Juego_Continuado)");
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_FIRST_ACTION", "Para la primera acción del partido, origen_accion debe ser 'Juego_Continuado'");
             }
+            System.out.println("   ✅ Primera acción válida: Juego_Continuado");
         }
+        
+        System.out.println("   ✅ [REGLA 5] Validación secuencial completada exitosamente");
     }
     
     // MÉTODOS AUXILIARES
