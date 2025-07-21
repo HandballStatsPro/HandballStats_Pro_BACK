@@ -121,18 +121,33 @@ public class AccionService {
     
     @Transactional
     public AccionResponseDTO actualizarAccion(Integer id, AccionUpdateDTO dto) {
+        System.out.println("🔥 ==> INICIO ACTUALIZACIÓN DE ACCIÓN <== 🔥");
+        System.out.println("📊 ID de acción a actualizar: " + id);
+        System.out.println("📊 Datos de actualización: " + dto);
+        
         Accion accion = accionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Accion", "id", String.valueOf(id)));
+                .orElseThrow(() -> {
+                    System.out.println("❌ ERROR: Acción no encontrada con ID: " + id);
+                    return new ResourceNotFoundException("Accion", "id", String.valueOf(id));
+                });
+        System.out.println("✅ Acción encontrada: " + accion);
         
         Partido partido = partidoRepository.findById(accion.getIdPartido())
-                .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(accion.getIdPartido())));
+                .orElseThrow(() -> {
+                    System.out.println("❌ ERROR: Partido no encontrado con ID: " + accion.getIdPartido());
+                    return new ResourceNotFoundException("Partido", "id", String.valueOf(accion.getIdPartido()));
+                });
         
         // Verificar permisos sobre el partido
+        System.out.println("🔐 Verificando permisos de acceso al partido...");
         if (!partidoService.puedeAccederPartido(partido)) {
+            System.out.println("❌ ERROR: Permisos denegados para actualizar la acción");
             throw new PermissionDeniedException();
         }
+        System.out.println("✅ Permisos verificados correctamente");
         
         // Crear DTO temporal para validación
+        System.out.println("🔄 Creando DTO temporal con valores combinados para validación...");
         AccionDTO tempDTO = new AccionDTO();
         tempDTO.setIdPartido(accion.getIdPartido());
         tempDTO.setIdPosesion(accion.getIdPosesion());
@@ -144,21 +159,51 @@ public class AccionService {
         tempDTO.setZonaLanzamiento(dto.getZonaLanzamiento() != null ? dto.getZonaLanzamiento() : accion.getZonaLanzamiento());
         tempDTO.setDetalleEvento(dto.getDetalleEvento() != null ? dto.getDetalleEvento() : accion.getDetalleEvento());
         tempDTO.setCambioPosesion(dto.getCambioPosesion() != null ? dto.getCambioPosesion() : accion.getCambioPosesion());
+        System.out.println("📊 DTO temporal creado: " + tempDTO);
         
         // Validar los cambios
+        System.out.println("📋 Iniciando proceso de validación de actualización...");
         validarAccion(tempDTO);
+        System.out.println("✅ Todas las reglas de validación pasaron correctamente para la actualización");
         
         // Actualizar campos
-        if (dto.getEquipoAccion() != null) accion.setEquipoAccion(dto.getEquipoAccion());
-        if (dto.getTipoAtaque() != null) accion.setTipoAtaque(dto.getTipoAtaque());
-        if (dto.getOrigenAccion() != null) accion.setOrigenAccion(dto.getOrigenAccion());
-        if (dto.getEvento() != null) accion.setEvento(dto.getEvento());
-        if (dto.getDetalleFinalizacion() != null) accion.setDetalleFinalizacion(dto.getDetalleFinalizacion());
-        if (dto.getZonaLanzamiento() != null) accion.setZonaLanzamiento(dto.getZonaLanzamiento());
-        if (dto.getDetalleEvento() != null) accion.setDetalleEvento(dto.getDetalleEvento());
-        if (dto.getCambioPosesion() != null) accion.setCambioPosesion(dto.getCambioPosesion());
+        System.out.println("💾 Aplicando cambios a la acción...");
+        if (dto.getEquipoAccion() != null) {
+            System.out.println("🔄 Actualizando equipoAccion: " + accion.getEquipoAccion() + " -> " + dto.getEquipoAccion());
+            accion.setEquipoAccion(dto.getEquipoAccion());
+        }
+        if (dto.getTipoAtaque() != null) {
+            System.out.println("🔄 Actualizando tipoAtaque: " + accion.getTipoAtaque() + " -> " + dto.getTipoAtaque());
+            accion.setTipoAtaque(dto.getTipoAtaque());
+        }
+        if (dto.getOrigenAccion() != null) {
+            System.out.println("🔄 Actualizando origenAccion: " + accion.getOrigenAccion() + " -> " + dto.getOrigenAccion());
+            accion.setOrigenAccion(dto.getOrigenAccion());
+        }
+        if (dto.getEvento() != null) {
+            System.out.println("🔄 Actualizando evento: " + accion.getEvento() + " -> " + dto.getEvento());
+            accion.setEvento(dto.getEvento());
+        }
+        if (dto.getDetalleFinalizacion() != null) {
+            System.out.println("🔄 Actualizando detalleFinalizacion: " + accion.getDetalleFinalizacion() + " -> " + dto.getDetalleFinalizacion());
+            accion.setDetalleFinalizacion(dto.getDetalleFinalizacion());
+        }
+        if (dto.getZonaLanzamiento() != null) {
+            System.out.println("🔄 Actualizando zonaLanzamiento: " + accion.getZonaLanzamiento() + " -> " + dto.getZonaLanzamiento());
+            accion.setZonaLanzamiento(dto.getZonaLanzamiento());
+        }
+        if (dto.getDetalleEvento() != null) {
+            System.out.println("🔄 Actualizando detalleEvento: " + accion.getDetalleEvento() + " -> " + dto.getDetalleEvento());
+            accion.setDetalleEvento(dto.getDetalleEvento());
+        }
+        if (dto.getCambioPosesion() != null) {
+            System.out.println("🔄 Actualizando cambioPosesion: " + accion.getCambioPosesion() + " -> " + dto.getCambioPosesion());
+            accion.setCambioPosesion(dto.getCambioPosesion());
+        }
         
         Accion accionActualizada = accionRepository.save(accion);
+        System.out.println("✅ Acción actualizada exitosamente");
+        System.out.println("🎉 ==> FIN ACTUALIZACIÓN DE ACCIÓN EXITOSA <== 🎉");
         return mapToResponseDTO(accionActualizada, partido);
     }
     
