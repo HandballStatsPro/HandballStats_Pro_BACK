@@ -172,7 +172,7 @@ public class AccionValidationFlowTest {
             accion.setTipoAtaque(TipoAtaque.Contraataque);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Contragol);
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -188,7 +188,7 @@ public class AccionValidationFlowTest {
             accion.setTipoAtaque(TipoAtaque.Contraataque);
             accion.setDetalleFinalizacion(DetalleFinalizacion._1a_oleada);
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
@@ -204,7 +204,7 @@ public class AccionValidationFlowTest {
             accion.setTipoAtaque(TipoAtaque.Contraataque);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Pivote); // ❌ Incorrecto para contraataque
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             
             ApiException exception = assertThrows(ApiException.class, 
                 () -> accionService.crearAccion(accion));
@@ -238,7 +238,7 @@ public class AccionValidationFlowTest {
             accion.setTipoAtaque(TipoAtaque.Posicional);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Contragol); // ❌ Incorrecto para posicional
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             
             ApiException exception = assertThrows(ApiException.class, 
                 () -> accionService.crearAccion(accion));
@@ -331,7 +331,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Extremos);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setDetalleEvento(DetalleEvento.Bloqueo_Defensor);
             accion.setCambioPosesion(false); // No cambia posesión por bloqueo
             
@@ -365,7 +365,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Fuera);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Lanzamiento_Exterior);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setDetalleEvento(DetalleEvento.Palo);
             accion.setCambioPosesion(false); // No cambia posesión por palo
             
@@ -474,7 +474,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Parado);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Lanzamiento_Exterior);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setDetalleEvento(DetalleEvento.Bloqueo_Defensor);
             accion.setCambioPosesion(false); // Correcto: NO cambia
             
@@ -490,7 +490,7 @@ public class AccionValidationFlowTest {
             AccionDTO accion = crearAccionBase();
             accion.setEvento(Evento.Lanzamiento_Fuera);
             accion.setDetalleFinalizacion(DetalleFinalizacion.Lanzamiento_Exterior);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion.setDetalleEvento(DetalleEvento.Palo);
             accion.setCambioPosesion(false); // Correcto: NO cambia
             
@@ -770,7 +770,7 @@ public class AccionValidationFlowTest {
             accion3.setTipoAtaque(TipoAtaque.Contraataque);
             accion3.setEvento(Evento.Gol);
             accion3.setDetalleFinalizacion(DetalleFinalizacion.Contragol);
-            accion3.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+            accion3.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
             accion3.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion3));
@@ -825,7 +825,7 @@ public class AccionValidationFlowTest {
                 accion.setTipoAtaque(TipoAtaque.Contraataque);
                 accion.setDetalleFinalizacion(detalle);
                 accion.setEvento(Evento.Gol);
-                accion.setZonaLanzamiento(ZonaLanzamiento.Zona_9m);
+                accion.setZonaLanzamiento(ZonaLanzamiento.Izquierda);
                 accion.setCambioPosesion(true);
                 
                 assertDoesNotThrow(() -> accionService.crearAccion(accion));
