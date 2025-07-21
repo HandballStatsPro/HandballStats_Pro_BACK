@@ -865,7 +865,7 @@ public class AccionValidationFlowTest {
         AccionDTO accion = new AccionDTO();
         accion.setIdPartido(1);
         accion.setIdPosesion(1);
-        accion.setEquipoAccion(EquipoAccion.Local);
+        accion.setEquipoAccion(EquipoAccion.LOCAL);
         accion.setTipoAtaque(TipoAtaque.Posicional);
         accion.setOrigenAccion(OrigenAccion.Juego_Continuado);
         return accion;
