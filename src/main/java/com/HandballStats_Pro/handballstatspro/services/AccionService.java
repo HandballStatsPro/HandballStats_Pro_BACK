@@ -290,23 +290,41 @@ public class AccionService {
     
     // Regla 2: Lógica del Tipo de Ataque
     private void validarRegla2_TipoAtaque(AccionDTO accionDTO) {
+        System.out.println("⚡ [REGLA 2] Validando lógica del tipo de ataque");
+        System.out.println("   📊 TipoAtaque: " + accionDTO.getTipoAtaque());
+        System.out.println("   📊 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion());
+        
         if (accionDTO.getTipoAtaque() == TipoAtaque.Contraataque) {
+            System.out.println("   🔍 Detectado tipo_ataque = 'Contraataque' - Validando detalles permitidos");
+            System.out.println("   💡 Detalles válidos para Contraataque: Contragol, 1ª oleada, 2ª oleada, 3ª oleada");
+            
             if (accionDTO.getDetalleFinalizacion() != DetalleFinalizacion.Contragol && 
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._1a_oleada && 
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._2a_oleada && 
                 accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._3a_oleada) {
+                System.out.println("   ❌ ERROR: Para tipo_ataque 'Contraataque', detalle_finalizacion debe ser uno de los valores específicos");
+                System.out.println("   💡 Valor actual: " + accionDTO.getDetalleFinalizacion() + " (no válido para Contraataque)");
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_COUNTERATTACK_DETAIL", "Si tipo_ataque es 'Contraataque', detalle_finalizacion debe ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
+            System.out.println("   ✅ DetalleFinalizacion válido para Contraataque: " + accionDTO.getDetalleFinalizacion());
         }
         
         if (accionDTO.getTipoAtaque() == TipoAtaque.Posicional) {
+            System.out.println("   🔍 Detectado tipo_ataque = 'Posicional' - Validando detalles prohibidos");
+            System.out.println("   💡 Detalles prohibidos para Posicional: Contragol, 1ª oleada, 2ª oleada, 3ª oleada");
+            
             if (accionDTO.getDetalleFinalizacion() == DetalleFinalizacion.Contragol || 
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._1a_oleada || 
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._2a_oleada || 
                 accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._3a_oleada) {
+                System.out.println("   ❌ ERROR: Para tipo_ataque 'Posicional', detalle_finalizacion no puede ser de contraataque");
+                System.out.println("   💡 Valor actual: " + accionDTO.getDetalleFinalizacion() + " (prohibido para Posicional)");
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_POSITIONAL_DETAIL", "Si tipo_ataque es 'Posicional', detalle_finalizacion no puede ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
+            System.out.println("   ✅ DetalleFinalizacion válido para Posicional: " + accionDTO.getDetalleFinalizacion());
         }
+        
+        System.out.println("   ✅ [REGLA 2] Validación de tipo de ataque completada exitosamente");
     }
     
     // Regla 3: Lógica del Evento Principal
