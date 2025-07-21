@@ -42,19 +42,33 @@ public class AccionService {
     
     @Transactional
     public AccionResponseDTO crearAccion(AccionDTO accionDTO) {
+        System.out.println("🔥 ==> INICIO CREACIÓN DE ACCIÓN <== 🔥");
+        System.out.println("📊 Datos recibidos: " + accionDTO);
+        
         // Verificar que el partido existe
+        System.out.println("🔍 Verificando existencia del partido ID: " + accionDTO.getIdPartido());
         Partido partido = partidoRepository.findById(accionDTO.getIdPartido())
-                .orElseThrow(() -> new ResourceNotFoundException("Partido", "id", String.valueOf(accionDTO.getIdPartido())));
+                .orElseThrow(() -> {
+                    System.out.println("❌ ERROR: Partido no encontrado con ID: " + accionDTO.getIdPartido());
+                    return new ResourceNotFoundException("Partido", "id", String.valueOf(accionDTO.getIdPartido()));
+                });
+        System.out.println("✅ Partido encontrado: " + partido.getNombreEquipoLocal() + " vs " + partido.getNombreEquipoVisitante());
         
         // Verificar permisos sobre el partido
+        System.out.println("🔐 Verificando permisos de acceso al partido...");
         if (!partidoService.puedeAccederPartido(partido)) {
+            System.out.println("❌ ERROR: Permisos denegados para acceder al partido");
             throw new PermissionDeniedException();
         }
+        System.out.println("✅ Permisos verificados correctamente");
         
         // Aplicar todas las reglas de validación
+        System.out.println("📋 Iniciando proceso de validación de reglas...");
         validarAccion(accionDTO);
+        System.out.println("✅ Todas las reglas de validación pasaron correctamente");
         
         // Crear la acción
+        System.out.println("💾 Creando nueva acción en la base de datos...");
         Accion accion = new Accion();
         accion.setIdPartido(accionDTO.getIdPartido());
         accion.setIdPosesion(accionDTO.getIdPosesion());
@@ -68,7 +82,11 @@ public class AccionService {
         accion.setCambioPosesion(accionDTO.getCambioPosesion());
         
         Accion nuevaAccion = accionRepository.save(accion);
-        return mapToResponseDTO(nuevaAccion, partido);
+        System.out.println("✅ Acción guardada exitosamente con ID: " + nuevaAccion.getIdAccion());
+        
+        AccionResponseDTO response = mapToResponseDTO(nuevaAccion, partido);
+        System.out.println("🎉 ==> FIN CREACIÓN DE ACCIÓN EXITOSA <== 🎉");
+        return response;
     }
     
     public List<AccionResponseDTO> listarAccionesPorPartido(Integer idPartido) {
