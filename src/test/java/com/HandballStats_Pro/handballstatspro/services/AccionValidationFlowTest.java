@@ -97,7 +97,7 @@ public class AccionValidationFlowTest {
             accion.setDetalleFinalizacion(DetalleFinalizacion._7m);
             accion.setTipoAtaque(TipoAtaque.Posicional);
             accion.setEvento(Evento.Gol);
-            accion.setZonaLanzamiento(ZonaLanzamiento.Zona_6m);
+            accion.setZonaLanzamiento(ZonaLanzamiento.Centro);
             accion.setCambioPosesion(true);
             
             assertDoesNotThrow(() -> accionService.crearAccion(accion));
