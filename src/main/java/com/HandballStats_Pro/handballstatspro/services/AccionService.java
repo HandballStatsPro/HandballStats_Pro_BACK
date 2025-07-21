@@ -226,11 +226,25 @@ public class AccionService {
     // MÉTODOS DE VALIDACIÓN - IMPLEMENTACIÓN DE LAS 5 REGLAS
     
     private void validarAccion(AccionDTO accionDTO) {
+        System.out.println("🔍 ==> INICIANDO VALIDACIÓN COMPLETA DE ACCIÓN <== 🔍");
+        System.out.println("📊 Datos a validar: " + accionDTO);
+        
+        System.out.println("📋 [REGLA 1] Validando caso especial de 7 metros...");
         validarRegla1_7Metros(accionDTO);
+        
+        System.out.println("📋 [REGLA 2] Validando lógica del tipo de ataque...");
         validarRegla2_TipoAtaque(accionDTO);
+        
+        System.out.println("📋 [REGLA 3] Validando lógica del evento principal...");
         validarRegla3_EventoPrincipal(accionDTO);
+        
+        System.out.println("📋 [REGLA 4] Validando lógica de cambio de posesión...");
         validarRegla4_CambioPosesion(accionDTO);
+        
+        System.out.println("📋 [REGLA 5] Validando lógica secuencial...");
         validarRegla5_LogicaSecuencial(accionDTO);
+        
+        System.out.println("✅ ==> TODAS LAS VALIDACIONES COMPLETADAS EXITOSAMENTE <== ✅");
     }
     
     // Regla 1: El Caso Especial de 7 Metros
