@@ -249,20 +249,43 @@ public class AccionService {
     
     // Regla 1: El Caso Especial de 7 Metros
     private void validarRegla1_7Metros(AccionDTO accionDTO) {
+        System.out.println("🎯 [REGLA 1] Validando caso especial de 7 metros");
+        System.out.println("   📊 OrigenAccion: " + accionDTO.getOrigenAccion());
+        System.out.println("   📊 DetalleFinalizacion: " + accionDTO.getDetalleFinalizacion());
+        System.out.println("   📊 TipoAtaque: " + accionDTO.getTipoAtaque());
+        
         if (accionDTO.getOrigenAccion() == OrigenAccion._7m) {
+            System.out.println("   🔍 Detectado origen_accion = '7m' - Aplicando validaciones específicas");
+            
             if (accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._7m) {
+                System.out.println("   ❌ ERROR: Si origen_accion es '7m', detalle_finalizacion debe ser '7m'");
+                System.out.println("   💡 Valor esperado: " + DetalleFinalizacion._7m + ", valor actual: " + accionDTO.getDetalleFinalizacion());
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_DETAIL", "Si el origen_accion es '7m', detalle_finalizacion debe ser '7m'");
             }
+            System.out.println("   ✅ DetalleFinalizacion correcto para 7m");
+            
             if (accionDTO.getTipoAtaque() != TipoAtaque.Posicional) {
+                System.out.println("   ❌ ERROR: Si origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
+                System.out.println("   💡 Valor esperado: " + TipoAtaque.Posicional + ", valor actual: " + accionDTO.getTipoAtaque());
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_TYPE", "Si el origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
             }
+            System.out.println("   ✅ TipoAtaque correcto para 7m");
+        } else {
+            System.out.println("   ℹ️ OrigenAccion no es '7m', continuando con validación inversa");
         }
         
         if (accionDTO.getDetalleFinalizacion() == DetalleFinalizacion._7m) {
+            System.out.println("   🔍 Detectado detalle_finalizacion = '7m' - Validando origen_accion");
+            
             if (accionDTO.getOrigenAccion() != OrigenAccion._7m) {
+                System.out.println("   ❌ ERROR: Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
+                System.out.println("   💡 Valor esperado: " + OrigenAccion._7m + ", valor actual: " + accionDTO.getOrigenAccion());
                 throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_7M_ORIGIN", "Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
             }
+            System.out.println("   ✅ OrigenAccion correcto para detalle_finalizacion '7m'");
         }
+        
+        System.out.println("   ✅ [REGLA 1] Validación de 7 metros completada exitosamente");
     }
     
     // Regla 2: Lógica del Tipo de Ataque
