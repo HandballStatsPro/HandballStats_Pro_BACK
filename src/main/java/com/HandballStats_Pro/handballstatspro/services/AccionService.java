@@ -210,7 +210,7 @@ public class AccionService {
             System.out.println("  → Origen es 7m, verificando detalle_finalizacion");
             if (accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._7m) {
                 System.out.println("  ERROR: Si origen_accion es 7m, detalle_finalizacion debe ser 7m");
-                throw new ApiException("Si origen_accion es '7m', detalle_finalizacion debe ser '7m'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si origen_accion es '7m', detalle_finalizacion debe ser '7m'");
             }
             System.out.println("  → Origen es 7m, verificando tipo_ataque");
             if (accionDTO.getTipoAtaque() != TipoAtaque.Posicional) {
