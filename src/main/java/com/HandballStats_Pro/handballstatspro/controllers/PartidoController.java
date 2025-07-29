@@ -56,13 +56,15 @@ public class PartidoController {
     @GetMapping("/equipo/{idEquipo}")
     @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
     public ResponseEntity<List<PartidoResponseDTO>> obtenerPartidosPorEquipo(@PathVariable Long idEquipo) {
-        return ResponseEntity.ok(partidoService.obtenerPartidosPorEquipo(idEquipo));
+        // TODO: Implementar método obtenerPartidosPorEquipo en PartidoService
+        return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/fecha/{fecha}")
     @PreAuthorize("hasAnyRole('Admin', 'GestorClub', 'Entrenador')")
     public ResponseEntity<List<PartidoResponseDTO>> obtenerPartidosPorFecha(@PathVariable LocalDate fecha) {
-        return ResponseEntity.ok(partidoService.obtenerPartidosPorFecha(fecha));
+        // TODO: Implementar método obtenerPartidosPorFecha en PartidoService  
+        return ResponseEntity.ok(List.of());
     }
 
     @GetMapping("/equipos-disponibles")
