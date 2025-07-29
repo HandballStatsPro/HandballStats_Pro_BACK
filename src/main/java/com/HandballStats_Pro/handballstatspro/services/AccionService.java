@@ -210,12 +210,12 @@ public class AccionService {
             System.out.println("  → Origen es 7m, verificando detalle_finalizacion");
             if (accionDTO.getDetalleFinalizacion() != DetalleFinalizacion._7m) {
                 System.out.println("  ERROR: Si origen_accion es 7m, detalle_finalizacion debe ser 7m");
-                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si origen_accion es '7m', detalle_finalizacion debe ser '7m'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si origen_accion es '7m', detalle_finalizacion debe ser '7m'");
             }
             System.out.println("  → Origen es 7m, verificando tipo_ataque");
             if (accionDTO.getTipoAtaque() != TipoAtaque.Posicional) {
                 System.out.println("  ERROR: Si origen_accion es 7m, tipo_ataque debe ser Posicional");
-                throw new ApiException("Si origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si origen_accion es '7m', tipo_ataque debe ser 'Posicional'");
             }
             System.out.println("  ✓ Regla 7m válida");
         }
@@ -224,7 +224,7 @@ public class AccionService {
             System.out.println("  → Detalle_finalizacion es 7m, verificando origen");
             if (accionDTO.getOrigenAccion() != OrigenAccion._7m) {
                 System.out.println("  ERROR: Si detalle_finalizacion es 7m, origen_accion debe ser 7m");
-                throw new ApiException("Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si detalle_finalizacion es '7m', origen_accion debe ser '7m'");
             }
             System.out.println("  ✓ Regla 7m inversa válida");
         }
@@ -242,7 +242,7 @@ public class AccionService {
             System.out.println("  → Tipo ataque es Contraataque, verificando detalle_finalizacion");
             if (accionDTO.getDetalleFinalizacion() == null || !detallesContraataque.contains(accionDTO.getDetalleFinalizacion())) {
                 System.out.println("  ERROR: Si tipo_ataque es Contraataque, detalle_finalizacion debe ser Contragol, 1ª oleada, 2ª oleada o 3ª oleada");
-                throw new ApiException("Si tipo_ataque es 'Contraataque', detalle_finalizacion debe ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si tipo_ataque es 'Contraataque', detalle_finalizacion debe ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
             System.out.println("  ✓ Tipo ataque Contraataque válido");
         }
@@ -251,7 +251,7 @@ public class AccionService {
             System.out.println("  → Tipo ataque es Posicional, verificando que no sea detalle de contraataque");
             if (accionDTO.getDetalleFinalizacion() != null && detallesContraataque.contains(accionDTO.getDetalleFinalizacion())) {
                 System.out.println("  ERROR: Si tipo_ataque es Posicional, detalle_finalizacion no puede ser de contraataque");
-                throw new ApiException("Si tipo_ataque es 'Posicional', detalle_finalizacion no puede ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Si tipo_ataque es 'Posicional', detalle_finalizacion no puede ser 'Contragol', '1ª oleada', '2ª oleada' o '3ª oleada'");
             }
             System.out.println("  ✓ Tipo ataque Posicional válido");
         }
@@ -270,15 +270,15 @@ public class AccionService {
                 System.out.println("    Evento es Gol - verificando campos obligatorios y nulos");
                 if (detalleFinalizacion == null) {
                     System.out.println("    ERROR: Para Gol, detalle_finalizacion es obligatorio");
-                    throw new ApiException("Para evento 'Gol', detalle_finalizacion es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Gol', detalle_finalizacion es obligatorio");
                 }
                 if (zonaLanzamiento == null) {
                     System.out.println("    ERROR: Para Gol, zona_lanzamiento es obligatorio");
-                    throw new ApiException("Para evento 'Gol', zona_lanzamiento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Gol', zona_lanzamiento es obligatorio");
                 }
                 if (detalleEvento != null) {
                     System.out.println("    ERROR: Para Gol, detalle_evento debe ser nulo");
-                    throw new ApiException("Para evento 'Gol', detalle_evento debe ser nulo");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Gol', detalle_evento debe ser nulo");
                 }
                 System.out.println("    ✓ Evento Gol válido");
                 break;
@@ -287,19 +287,19 @@ public class AccionService {
                 System.out.println("    Evento es Lanzamiento_Parado - verificando campos");
                 if (detalleFinalizacion == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Parado, detalle_finalizacion es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_finalizacion es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Parado', detalle_finalizacion es obligatorio");
                 }
                 if (zonaLanzamiento == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Parado, zona_lanzamiento es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', zona_lanzamiento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Parado', zona_lanzamiento es obligatorio");
                 }
                 if (detalleEvento == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Parado, detalle_evento es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_evento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Parado', detalle_evento es obligatorio");
                 }
                 if (detalleEvento != DetalleEvento.Parada_Portero && detalleEvento != DetalleEvento.Bloqueo_Defensor) {
                     System.out.println("    ERROR: Para Lanzamiento_Parado, detalle_evento debe ser Parada_Portero o Bloqueo_Defensor");
-                    throw new ApiException("Para evento 'Lanzamiento_Parado', detalle_evento debe ser 'Parada_Portero' o 'Bloqueo_Defensor'");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Parado', detalle_evento debe ser 'Parada_Portero' o 'Bloqueo_Defensor'");
                 }
                 System.out.println("    ✓ Evento Lanzamiento_Parado válido");
                 break;
@@ -308,19 +308,19 @@ public class AccionService {
                 System.out.println("    Evento es Lanzamiento_Fuera - verificando campos");
                 if (detalleFinalizacion == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Fuera, detalle_finalizacion es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', detalle_finalizacion es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Fuera', detalle_finalizacion es obligatorio");
                 }
                 if (zonaLanzamiento == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Fuera, zona_lanzamiento es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', zona_lanzamiento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Fuera', zona_lanzamiento es obligatorio");
                 }
                 if (detalleEvento == null) {
                     System.out.println("    ERROR: Para Lanzamiento_Fuera, detalle_evento es obligatorio");
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Fuera', detalle_evento es obligatorio");
                 }
                 if (detalleEvento != DetalleEvento.Palo && detalleEvento != DetalleEvento.Fuera_Directo) {
                     System.out.println("    ERROR: Para Lanzamiento_Fuera, detalle_evento debe ser Palo o Fuera_Directo");
-                    throw new ApiException("Para evento 'Lanzamiento_Fuera', detalle_evento debe ser 'Palo' o 'Fuera_Directo'");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Lanzamiento_Fuera', detalle_evento debe ser 'Palo' o 'Fuera_Directo'");
                 }
                 System.out.println("    ✓ Evento Lanzamiento_Fuera válido");
                 break;
@@ -329,15 +329,15 @@ public class AccionService {
                 System.out.println("    Evento es Perdida - verificando campos");
                 if (detalleFinalizacion != null) {
                     System.out.println("    ERROR: Para Perdida, detalle_finalizacion debe ser nulo");
-                    throw new ApiException("Para evento 'Perdida', detalle_finalizacion debe ser nulo");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Perdida', detalle_finalizacion debe ser nulo");
                 }
                 if (zonaLanzamiento != null) {
                     System.out.println("    ERROR: Para Perdida, zona_lanzamiento debe ser nulo");
-                    throw new ApiException("Para evento 'Perdida', zona_lanzamiento debe ser nulo");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Perdida', zona_lanzamiento debe ser nulo");
                 }
                 if (detalleEvento == null) {
                     System.out.println("    ERROR: Para Perdida, detalle_evento es obligatorio");
-                    throw new ApiException("Para evento 'Perdida', detalle_evento es obligatorio");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Perdida', detalle_evento es obligatorio");
                 }
                 Set<DetalleEvento> detallesValidosPerdida = Set.of(
                     DetalleEvento.Pasos, DetalleEvento.Dobles, DetalleEvento.FaltaAtaque,
@@ -346,7 +346,7 @@ public class AccionService {
                 );
                 if (!detallesValidosPerdida.contains(detalleEvento)) {
                     System.out.println("    ERROR: Para Perdida, detalle_evento no es válido");
-                    throw new ApiException("Para evento 'Perdida', detalle_evento debe ser uno de: Pasos, Dobles, FaltaAtaque, Pasivo, InvasionArea, Robo, Pie, BalonFuera");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para evento 'Perdida', detalle_evento debe ser uno de: Pasos, Dobles, FaltaAtaque, Pasivo, InvasionArea, Robo, Pie, BalonFuera");
                 }
                 System.out.println("    ✓ Evento Perdida válido");
                 break;
@@ -384,7 +384,7 @@ public class AccionService {
                 System.out.println("    Acción anterior encontrada ID: " + accionAnterior.getIdAccion() + ", cambio_posesion: " + accionAnterior.getCambioPosesion());
                 if (!accionAnterior.getCambioPosesion()) {
                     System.out.println("    ERROR: Para Juego_Continuado, la acción anterior debe tener cambio_posesion = true");
-                    throw new ApiException("Para origen_accion 'Juego_Continuado', la acción anterior debe tener cambio_posesion = true");
+                    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para origen_accion 'Juego_Continuado', la acción anterior debe tener cambio_posesion = true");
                 }
             } else {
                 System.out.println("    No hay acción anterior, válido para inicio de posesión");
@@ -396,14 +396,14 @@ public class AccionService {
             System.out.println("  → Origen es rebote, verificando acción anterior");
             if (!accionAnteriorOpt.isPresent()) {
                 System.out.println("    ERROR: Para rebote debe existir una acción anterior");
-                throw new ApiException("Para origen_accion de rebote debe existir una acción anterior");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para origen_accion de rebote debe existir una acción anterior");
             }
             
             Accion accionAnterior = accionAnteriorOpt.get();
             System.out.println("    Acción anterior encontrada ID: " + accionAnterior.getIdAccion() + ", cambio_posesion: " + accionAnterior.getCambioPosesion());
             if (accionAnterior.getCambioPosesion()) {
                 System.out.println("    ERROR: Para rebote, la acción anterior debe tener cambio_posesion = false");
-                throw new ApiException("Para origen_accion de rebote, la acción anterior debe tener cambio_posesion = false");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Para origen_accion de rebote, la acción anterior debe tener cambio_posesion = false");
             }
             System.out.println("    ✓ Rebote válido");
         }
