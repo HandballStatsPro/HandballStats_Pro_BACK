@@ -7,9 +7,9 @@ public enum DetalleFinalizacion {
     Extremo,
     _7m,
     Contragol,
-    _1ª_oleada("1ª oleada"),
-    _2ª_oleada("2ª oleada"),
-    _3ª_oleada("3ª oleada");
+    Primera_Oleada,
+    Segunda_Oleada,
+    Tercera_Oleada;
 
     private final String displayName;
 
